@@ -6,7 +6,7 @@
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.jdk17
-    pkgs.gradle
+    pkgs.gradle_8  # Enforce Gradle 8 to avoid 9.0 incompatibilities
     pkgs.unzip
     pkgs.zip
   ];
