@@ -158,19 +158,7 @@ fi
 opts=""
 args=""
 
-# Process arguments
-for arg in "$@" ; do
-    if [ "$arg" = "--" ] ; then
-        shift
-        break
-    fi
-    # Add to arguments
-    args="$args \"$arg\""
-    shift
-done
-
-# Collect all arguments for the java command
-set -- $args
+# Arguments are passed directly via "$@"
 
 # Execute Gradle
 exec "$JAVACMD" $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS \
