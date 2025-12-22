@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import com.riohhost.app.data.models.Reservation
 import com.riohhost.app.utils.CurrencyUtils
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationDetailScreen(
     reservationId: String?,
