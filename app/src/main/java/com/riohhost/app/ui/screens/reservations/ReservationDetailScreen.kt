@@ -167,7 +167,7 @@ class ReservationDetailViewModel(
     val reservation = _reservation.asStateFlow()
 
     fun loadReservation(id: String) {
-        androidx.lifecycle.viewModelScope.launch {
+        viewModelScope.launch {
             _reservation.value = repository.getReservationById(id)
         }
     }
