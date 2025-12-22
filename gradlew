@@ -62,7 +62,7 @@
 #
 ##############################################################################
 
-set -o errexit -o nounset
+set -o errexit
 
 appNameBase=$(basename "$0")
 appName="${appNameBase%.*}"
