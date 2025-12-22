@@ -48,8 +48,11 @@ android {
     }
 }
 
-dependencies {
+configurations.all {
+    exclude(group = "io.ktor", module = "ktor-client-android")
+}
 
+dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.8.1")
@@ -68,15 +71,8 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
 
-
-    configurations.all {
-        exclude(group = "io.ktor", module = "ktor-client-android")
-    }
-
-    implementation("io.ktor:ktor-client-core:3.0.0")
+    // Ktor 3.0.0 - matching Supabase BOM
     implementation("io.ktor:ktor-client-okhttp:3.0.0")
-    implementation("io.ktor:ktor-client-content-negotiation:3.0.0")
-    implementation("io.ktor:ktor-client-logging:3.0.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
