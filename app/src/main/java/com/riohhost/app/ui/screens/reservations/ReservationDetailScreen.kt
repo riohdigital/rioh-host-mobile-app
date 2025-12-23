@@ -63,7 +63,6 @@ fun ReservationDetailScreen(
                     .padding(padding)
                     .padding(16.dp)
             ) {
-                // Status Header
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -87,7 +86,6 @@ fun ReservationDetailScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Guest Info
                 Text("Hóspede", style = MaterialTheme.typography.titleMedium)
                 Card(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -108,18 +106,17 @@ fun ReservationDetailScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Dates & Financials
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(16.dp)) {
                             Text("Check-in", style = MaterialTheme.typography.labelSmall)
-                            Text(reservation!!.checkInDate, fontWeight = FontWeight.Bold)
+                            Text(reservation!!.checkInDate ?: "", fontWeight = FontWeight.Bold)
                         }
                     }
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(16.dp)) {
                             Text("Check-out", style = MaterialTheme.typography.labelSmall)
-                            Text(reservation!!.checkOutDate, fontWeight = FontWeight.Bold)
+                            Text(reservation!!.checkOutDate ?: "", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -133,7 +130,7 @@ fun ReservationDetailScreen(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total")
                             Text(
-                                CurrencyUtils.formatBRL(reservation!!.totalRevenue ?: 0.0),
+                                CurrencyUtils.formatBRL(reservation!!.totalRevenue?.toDoubleOrNull() ?: 0.0),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -141,7 +138,7 @@ fun ReservationDetailScreen(
                         if (reservation!!.cleaningFee != null) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Taxa de Limpeza", style = MaterialTheme.typography.bodySmall)
-                                Text(CurrencyUtils.formatBRL(reservation!!.cleaningFee!!), style = MaterialTheme.typography.bodySmall)
+                                Text(CurrencyUtils.formatBRL(reservation!!.cleaningFee?.toDoubleOrNull() ?: 0.0), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -149,7 +146,6 @@ fun ReservationDetailScreen(
                 
                 Spacer(modifier = Modifier.weight(1f))
             
-                // Actions
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { /* TODO: Contact via WhatsApp/Email */ },

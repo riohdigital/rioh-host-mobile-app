@@ -48,23 +48,19 @@ data class Reservation(
     @SerialName("guest_email") val guestEmail: String? = null,
     @SerialName("number_of_guests") val numberOfGuests: Int? = null,
     
-    // Campos financeiros - String para numeric do Supabase (evita problemas de precisão)
     @SerialName("total_revenue") val totalRevenue: String? = null,
     @SerialName("base_revenue") val baseRevenue: String? = null,
     @SerialName("commission_amount") val commissionAmount: String? = null,
     @SerialName("net_revenue") val netRevenue: String? = null,
     @SerialName("cleaning_fee") val cleaningFee: String? = null,
     
-    // Status
     @SerialName("reservation_status") val reservationStatus: String? = null,
     @SerialName("payment_status") val paymentStatus: String? = null,
     @SerialName("payment_date") val paymentDate: String? = null,
     
-    // Horários - time do Supabase vem como String "HH:mm:ss"
     @SerialName("checkin_time") val checkinTime: String? = null,
     @SerialName("checkout_time") val checkoutTime: String? = null,
     
-    // Campos de limpeza
     @SerialName("cleaner_user_id") val cleanerUserId: String? = null,
     @SerialName("cleaning_status") val cleaningStatus: String? = null,
     @SerialName("cleaning_payment_status") val cleaningPaymentStatus: String? = null,
@@ -72,11 +68,9 @@ data class Reservation(
     @SerialName("cleaning_notes") val cleaningNotes: String? = null,
     @SerialName("cleaning_allocation") val cleaningAllocation: String? = null,
     
-    // Flags
     @SerialName("is_communicated") val isCommunicated: Boolean? = false,
     @SerialName("receipt_sent") val receiptSent: Boolean? = false,
     
-    // Auditoria
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("created_by") val createdBy: String? = null,
     @SerialName("created_by_source") val createdBySource: String? = null,
@@ -106,4 +100,13 @@ data class ChatMessage(
     val content: String,
     val timestamp: String,
     val status: String? = null
+)
+
+@Serializable
+data class NotificationDestination(
+    val id: String,
+    val name: String,
+    @SerialName("whatsapp_number") val whatsappNumber: String? = null,
+    val role: String? = null,
+    @SerialName("is_authenticated") val isAuthenticated: Boolean = false
 )

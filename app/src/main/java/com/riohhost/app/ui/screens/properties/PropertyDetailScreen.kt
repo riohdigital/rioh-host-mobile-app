@@ -77,11 +77,11 @@ fun PropertyDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Diária Base")
-                            Text(CurrencyUtils.formatBRL(property!!.baseNightlyPrice ?: 0.0), fontWeight = FontWeight.Bold)
+                            Text(CurrencyUtils.formatBRL(property!!.baseNightlyPrice?.toDoubleOrNull() ?: 0.0), fontWeight = FontWeight.Bold)
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Taxa de Limpeza")
-                            Text(CurrencyUtils.formatBRL(property!!.cleaningFee ?: 0.0), fontWeight = FontWeight.Bold)
+                            Text(CurrencyUtils.formatBRL(property!!.cleaningFee?.toDoubleOrNull() ?: 0.0), fontWeight = FontWeight.Bold)
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Capacidade")
@@ -92,7 +92,6 @@ fun PropertyDetailScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Links logic (Airbnb/Booking)
                 if (!property!!.airbnbLink.isNullOrBlank() || !property!!.bookingLink.isNullOrBlank()) {
                     Text("Links Externos", style = MaterialTheme.typography.titleSmall)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
