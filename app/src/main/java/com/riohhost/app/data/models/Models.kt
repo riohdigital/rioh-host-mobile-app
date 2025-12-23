@@ -47,36 +47,24 @@ data class Reservation(
     @SerialName("guest_phone") val guestPhone: String? = null,
     @SerialName("guest_email") val guestEmail: String? = null,
     @SerialName("number_of_guests") val numberOfGuests: Int? = null,
-    
-    // Campos financeiros - Double para numeric do Supabase
     @SerialName("total_revenue") val totalRevenue: Double? = null,
     @SerialName("base_revenue") val baseRevenue: Double? = null,
     @SerialName("commission_amount") val commissionAmount: Double? = null,
     @SerialName("net_revenue") val netRevenue: Double? = null,
     @SerialName("cleaning_fee") val cleaningFee: Double? = null,
-    
-    // Status
     @SerialName("reservation_status") val reservationStatus: String? = null,
     @SerialName("payment_status") val paymentStatus: String? = null,
     @SerialName("payment_date") val paymentDate: String? = null,
-    
-    // Horários
     @SerialName("checkin_time") val checkinTime: String? = null,
     @SerialName("checkout_time") val checkoutTime: String? = null,
-    
-    // Campos de limpeza
     @SerialName("cleaner_user_id") val cleanerUserId: String? = null,
     @SerialName("cleaning_status") val cleaningStatus: String? = null,
     @SerialName("cleaning_payment_status") val cleaningPaymentStatus: String? = null,
     @SerialName("cleaning_rating") val cleaningRating: Int? = null,
     @SerialName("cleaning_notes") val cleaningNotes: String? = null,
     @SerialName("cleaning_allocation") val cleaningAllocation: String? = null,
-    
-    // Flags
     @SerialName("is_communicated") val isCommunicated: Boolean? = false,
     @SerialName("receipt_sent") val receiptSent: Boolean? = false,
-    
-    // Auditoria
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("created_by") val createdBy: String? = null,
     @SerialName("created_by_source") val createdBySource: String? = null,
@@ -86,10 +74,11 @@ data class Reservation(
 @Serializable
 data class Expense(
     val id: String,
-    val description: String,
-    val amount: Double,
+    @SerialName("property_id") val propertyId: String? = null,
+    val description: String? = null,
+    val amount: Double? = null,
     val category: String? = null,
-    @SerialName("expense_date") val expenseDate: String
+    @SerialName("expense_date") val expenseDate: String? = null
 )
 
 @Serializable

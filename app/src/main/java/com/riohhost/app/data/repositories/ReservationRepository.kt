@@ -29,15 +29,51 @@ class ReservationRepository {
         }
     }
 
+    /**
+     * Get reservations filtered by date range, properties, and platform.
+     * Uses overlap logic: check_out >= startDate AND check_in <= endDate
+     */
+    suspend fun getReservationsFiltered(
+        startDate: String,
+        endDate: String,
+        propertyIds: List<String>? = null,
+        platform: String? = null
+    ): List<Reservation> {
+        return try {
+            android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate, platform: $platform")
+            
+            var query = supabase.postgrest.from("reservations").select()
+            query = query.gte("check_out_date", startDate)
+            query = query.lte("check_in_date", endDate)
+            
+            if (!platform.isNullOrEmpty() && platform != "all") {
+                query = query.eq("platform", platform)
+            }
+            
+            val result = query.decodeList<Reservation>()
+            
+            val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                result.filter { reservation -> 
+                    reservation.propertyId?.let { propertyIds.contains(it) } ?: false
+                }
+            } else {
+                result
+            }
+            
+            android.util.Log.d("ReservationRepo", "Encontradas ${filteredResult.size} reservas filtradas")
+            filteredResult
+        } catch (e: Exception) {
+            android.util.Log.e("ReservationRepo", "ERRO ao buscar reservas filtradas: ${e.message}", e)
+            emptyList()
+        }
+    }
+
     suspend fun getReservationById(id: String): Reservation? {
         return try {
             supabase.postgrest.from("reservations")
-                .select {
-                    filter { eq("id", id) }
-                }
+                .select { filter { eq("id", id) } }
                 .decodeSingle<Reservation>()
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao buscar reserva por ID: ${e.message}", e)
             null
         }
     }
@@ -47,7 +83,6 @@ class ReservationRepository {
             supabase.postgrest.rpc("fn_get_cleaner_reservations", mapOf("cleaner_id" to cleanerId))
                 .decodeList<Reservation>()
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao buscar reservas do cleaner: ${e.message}", e)
             emptyList()
         }
     }
@@ -57,7 +92,6 @@ class ReservationRepository {
             supabase.postgrest.rpc("fn_get_available_reservations", mapOf("cleaner_id" to cleanerId))
                 .decodeList<Reservation>()
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao buscar reservas disponíveis: ${e.message}", e)
             emptyList()
         }
     }
@@ -67,7 +101,7 @@ class ReservationRepository {
             supabase.postgrest.rpc("assign_cleaning_with_permissions", 
                 mapOf("reservation_id" to reservationId, "cleaner_id" to cleanerId))
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao atribuir limpeza: ${e.message}", e)
+            // Handle error
         }
     }
 
@@ -75,7 +109,7 @@ class ReservationRepository {
         try {
             supabase.postgrest.rpc("fn_toggle_cleaning_status", mapOf("reservation_id" to reservationId))
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao alternar status: ${e.message}", e)
+            // Handle error
         }
     }
 }
