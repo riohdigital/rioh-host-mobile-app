@@ -41,7 +41,7 @@ fun PropertyDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(property?.name ?: "Propriedade") },
+                title = { Text(property?.nickname ?: property?.name ?: "Propriedade") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
@@ -50,11 +50,21 @@ fun PropertyDetailScreen(
                 actions = {
                     if (propertyId != null) {
                         IconButton(onClick = { onEditClick(propertyId) }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar")
+                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            if (propertyId != null) {
+                ExtendedFloatingActionButton(
+                    onClick = { onEditClick(propertyId) },
+                    icon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                    text = { Text("Editar") },
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     ) { padding ->
         if (property == null) {
@@ -74,9 +84,9 @@ fun PropertyDetailScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = property!!.nickname ?: property!!.name,
                                 style = MaterialTheme.typography.headlineSmall,
@@ -85,10 +95,18 @@ fun PropertyDetailScreen(
                             if (!property!!.address.isNullOrBlank()) {
                                 Text(property!!.address!!, style = MaterialTheme.typography.bodyMedium)
                             }
-                            val statusActive = property!!.status?.equals("Ativo", ignoreCase = true) == true
+                        }
+                        // Status badge
+                        val statusActive = property!!.status?.equals("Ativo", ignoreCase = true) == true
+                        Surface(
+                            color = if (statusActive) Color(0xFF4CAF50) else Color.Gray,
+                            shape = MaterialTheme.shapes.small
+                        ) {
                             Text(
                                 text = if (statusActive) "Ativo" else property!!.status ?: "Inativo",
-                                color = if (statusActive) Color(0xFF4CAF50) else Color.Gray
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
                     }
@@ -100,13 +118,13 @@ fun PropertyDetailScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("Tipo", style = MaterialTheme.typography.labelSmall)
+                            Text("Tipo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             Text(property!!.propertyType ?: "N/A", fontWeight = FontWeight.Bold)
                         }
                     }
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("Max Hóspedes", style = MaterialTheme.typography.labelSmall)
+                            Text("Max Hóspedes", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             Text("${property!!.maxGuests ?: "N/A"}", fontWeight = FontWeight.Bold)
                         }
                     }
@@ -117,14 +135,14 @@ fun PropertyDetailScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("Check-in", style = MaterialTheme.typography.labelSmall)
-                            Text(property!!.defaultCheckinTime ?: "15:00", fontWeight = FontWeight.Bold)
+                            Text("Check-in", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(property!!.defaultCheckinTime?.take(5) ?: "15:00", fontWeight = FontWeight.Bold)
                         }
                     }
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("Check-out", style = MaterialTheme.typography.labelSmall)
-                            Text(property!!.defaultCheckoutTime ?: "11:00", fontWeight = FontWeight.Bold)
+                            Text("Check-out", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(property!!.defaultCheckoutTime?.take(5) ?: "11:00", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -134,13 +152,14 @@ fun PropertyDetailScreen(
                 // Financial Info
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Financeiro", style = MaterialTheme.typography.titleSmall)
+                        Text("Financeiro", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Diária Base")
                             Text(
                                 CurrencyUtils.formatBRL(property!!.baseNightlyPrice ?: 0.0),
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -149,7 +168,37 @@ fun PropertyDetailScreen(
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Comissão")
-                            Text("${((property!!.commissionRate ?: 0.0) * 100).toInt()}%")
+                            Text("${((property!!.commissionRate ?: 0.0) * 100).toInt()}%", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                // Links
+                if (!property!!.airbnbLink.isNullOrBlank() || !property!!.bookingLink.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Links", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (!property!!.airbnbLink.isNullOrBlank()) {
+                                Row {
+                                    Surface(color = Color(0xFFFF5A5F), shape = MaterialTheme.shapes.small) {
+                                        Text("Airbnb", color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Link configurado", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                }
+                            }
+                            if (!property!!.bookingLink.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row {
+                                    Surface(color = Color(0xFF003580), shape = MaterialTheme.shapes.small) {
+                                        Text("Booking", color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Link configurado", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                }
+                            }
                         }
                     }
                 }
@@ -158,26 +207,14 @@ fun PropertyDetailScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("Observações", style = MaterialTheme.typography.titleSmall)
+                            Text("Observações", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(property!!.notes!!, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Actions
-                if (propertyId != null) {
-                    Button(
-                        onClick = { onEditClick(propertyId) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Editar Propriedade")
-                    }
-                }
+                Spacer(modifier = Modifier.height(80.dp)) // Space for FAB
             }
         }
     }
