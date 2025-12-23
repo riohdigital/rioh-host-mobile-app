@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Cleaning
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.FloatingActionButton
@@ -14,8 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -83,12 +81,6 @@ fun NavGraph() {
     
     // Global filters shared across screens
     val globalFiltersViewModel: GlobalFiltersViewModel = viewModel()
-    val properties by globalFiltersViewModel.availableProperties.collectAsState()
-    
-    // Load properties for filter dropdown
-    LaunchedEffect(Unit) {
-        globalFiltersViewModel.loadProperties()
-    }
 
     val mainScreens = listOf(
         Screen.Dashboard.route,
@@ -109,10 +101,7 @@ fun NavGraph() {
     Scaffold(
         topBar = {
             if (showFilterBar) {
-                GlobalFilterBar(
-                    filtersViewModel = globalFiltersViewModel,
-                    properties = properties
-                )
+                GlobalFilterBar(filtersViewModel = globalFiltersViewModel)
             }
         },
         bottomBar = {
@@ -161,7 +150,7 @@ fun NavGraph() {
                                 },
                                 containerColor = MaterialTheme.colorScheme.tertiary
                             ) {
-                                Icon(Icons.Default.Home, contentDescription = "Faxinas", modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.DateRange, contentDescription = "Faxinas", modifier = Modifier.size(20.dp))
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
