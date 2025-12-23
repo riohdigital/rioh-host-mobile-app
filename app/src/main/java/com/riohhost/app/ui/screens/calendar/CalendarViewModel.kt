@@ -4,51 +4,72 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.riohhost.app.data.models.Reservation
 import com.riohhost.app.data.repositories.ReservationRepository
+import com.riohhost.app.utils.DateRangeCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
-sealed class CalendarUiState {
-    object Loading : CalendarUiState()
-    data class Success(val reservations: List<Reservation>) : CalendarUiState()
-    data class Error(val message: String) : CalendarUiState()
-}
-
-class CalendarViewModel(
-    private val reservationRepository: ReservationRepository = ReservationRepository()
-) : ViewModel() {
+class CalendarViewModel : ViewModel() {
+    private val repository = ReservationRepository()
 
     private val _uiState = MutableStateFlow<CalendarUiState>(CalendarUiState.Loading)
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
     init {
-        loadReservations()
+        // Load with general period to show all reservations
+        val today = LocalDate.now()
+        loadReservationsFiltered(
+            startDate = DateRangeCalculator.toIsoString(today.minusMonths(3)),
+            endDate = DateRangeCalculator.toIsoString(today.plusMonths(12)),
+            propertyIds = null,
+            platform = null
+        )
     }
 
-    fun loadReservations() {
+    fun loadReservationsFiltered(
+        startDate: String,
+        endDate: String,
+        propertyIds: List<String>?,
+        platform: String?
+    ) {
         viewModelScope.launch {
-            _uiState.value = CalendarUiState.Loading
             try {
-                // Fetch all for now. In real app, filter by month range.
-                val reservations = reservationRepository.getReservations()
+                _uiState.value = CalendarUiState.Loading
+                android.util.Log.d("CalendarVM", "Loading: $startDate to $endDate")
+                
+                val reservations = repository.getReservationsFiltered(
+                    startDate = startDate,
+                    endDate = endDate,
+                    propertyIds = propertyIds,
+                    platform = platform
+                )
+                
+                android.util.Log.d("CalendarVM", "Loaded ${reservations.size} reservations")
                 _uiState.value = CalendarUiState.Success(reservations)
             } catch (e: Exception) {
-                _uiState.value = CalendarUiState.Error(e.message ?: "Unknown error")
+                android.util.Log.e("CalendarVM", "Error: ${e.message}", e)
+                _uiState.value = CalendarUiState.Error(e.message ?: "Erro ao carregar")
             }
         }
     }
 
-    // Helper to check efficiently (optimization: map dates to reservations map)
     fun getReservationsForDate(date: LocalDate, reservations: List<Reservation>): List<Reservation> {
-        return reservations.filter {
-            val checkIn = LocalDate.parse(it.checkInDate, DateTimeFormatter.ISO_DATE)
-            val checkOut = LocalDate.parse(it.checkOutDate, DateTimeFormatter.ISO_DATE)
-            
-            // Check if date is within range [checkIn, checkOut]
-            !date.isBefore(checkIn) && !date.isAfter(checkOut)
+        return reservations.filter { reservation ->
+            val checkIn = reservation.checkInDate?.let { LocalDate.parse(it) }
+            val checkOut = reservation.checkOutDate?.let { LocalDate.parse(it) }
+            if (checkIn != null && checkOut != null) {
+                !date.isBefore(checkIn) && !date.isAfter(checkOut)
+            } else {
+                false
+            }
         }
     }
+}
+
+sealed class CalendarUiState {
+    object Loading : CalendarUiState()
+    data class Success(val reservations: List<Reservation>) : CalendarUiState()
+    data class Error(val message: String) : CalendarUiState()
 }

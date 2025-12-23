@@ -1,10 +1,8 @@
 package com.riohhost.app.ui.screens.calendar
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -15,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -25,10 +22,9 @@ import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.core.daysOfWeek
-import com.kizitonwose.calendar.core.firstDayOfWeekFromLocale
 import kotlinx.coroutines.launch
 import com.riohhost.app.data.models.Reservation
-import java.time.DayOfWeek
+import com.riohhost.app.ui.GlobalFiltersViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -36,6 +32,7 @@ import java.util.Locale
 
 @Composable
 fun CalendarScreen(
+    filtersViewModel: GlobalFiltersViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     viewModel: CalendarViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onReservationClick: (String) -> Unit
 ) {
@@ -46,6 +43,19 @@ fun CalendarScreen(
     val daysOfWeek = remember { daysOfWeek() }
     
     val uiState by viewModel.uiState.collectAsState()
+    val dateRange by filtersViewModel.dateRangeStrings.collectAsState()
+    val selectedProperties by filtersViewModel.selectedProperties.collectAsState()
+    val selectedPlatform by filtersViewModel.selectedPlatform.collectAsState()
+    
+    // Reload when filters change
+    LaunchedEffect(dateRange, selectedProperties, selectedPlatform) {
+        viewModel.loadReservationsFiltered(
+            startDate = dateRange.first,
+            endDate = dateRange.second,
+            propertyIds = filtersViewModel.getPropertyFilter(),
+            platform = filtersViewModel.getPlatformFilter()
+        )
+    }
     
     val state = rememberCalendarState(
         startMonth = startMonth,
@@ -62,7 +72,6 @@ fun CalendarScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Header
         MonthHeader(
             month = visibleMonth, 
             onPreviousClick = { 
@@ -73,7 +82,6 @@ fun CalendarScreen(
             }
         )
 
-        // Days of Week
         Row(modifier = Modifier.fillMaxWidth()) {
             for (dayOfWeek in daysOfWeek) {
                 Text(
@@ -120,11 +128,11 @@ fun CalendarScreen(
             Text(
                 text = "Reservas para ${selection.toString()}",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             
             if (selectedReservations.isEmpty()) {
-                Text(text = "Nenhuma reserva para esta data.", color = Color.Gray)
+                Text(text = "Nenhuma reserva para esta data.", color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp))
             } else {
                 androidx.compose.foundation.lazy.LazyColumn {
                     items(selectedReservations.size) { index ->
@@ -132,7 +140,7 @@ fun CalendarScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp)
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
                                 .clickable { onReservationClick(res.id) },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
@@ -156,7 +164,6 @@ fun Day(
     reservations: List<Reservation>,
     onClick: (LocalDate) -> Unit
 ) {
-    // Logic for visual indicators
     val isCheckIn = reservations.any { it.checkInDate == day.date.toString() }
     val isCheckOut = reservations.any { it.checkOutDate == day.date.toString() }
     val isOccupied = reservations.isNotEmpty() && !isCheckIn && !isCheckOut
@@ -164,14 +171,14 @@ fun Day(
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .padding(1.dp) // Gap
-            .clip(RoundedCornerShape(4.dp)) // Square-ish for range
+            .padding(1.dp)
+            .clip(RoundedCornerShape(4.dp))
             .background(
                 color = when {
-                    isSelected -> Color(0xFF007AFF) // Selected Blue
-                    isCheckIn -> Color(0xFF4CAF50) // Green
-                    isCheckOut -> Color(0xFFF44336) // Red
-                    isOccupied -> Color(0xFFE0E0E0) // Gray
+                    isSelected -> Color(0xFF007AFF)
+                    isCheckIn -> Color(0xFF4CAF50)
+                    isCheckOut -> Color(0xFFF44336)
+                    isOccupied -> Color(0xFFE0E0E0)
                     else -> Color.Transparent
                 }
             )
