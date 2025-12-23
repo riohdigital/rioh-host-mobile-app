@@ -30,9 +30,7 @@ class ExpenseRepository {
 
     /**
      * Get expenses filtered by date range and optionally by properties.
-     * Uses the SAME SYNTAX as ReservationRepository which works correctly:
-     * - expense_date >= startDate
-     * - expense_date <= endDate
+     * Uses filter block inside select - same pattern that works for other queries.
      */
     suspend fun getExpensesFiltered(
         startDate: String,
@@ -42,14 +40,14 @@ class ExpenseRepository {
         return try {
             android.util.Log.d("ExpenseRepo", "Buscando despesas: $startDate a $endDate")
             
-            // Use chained query syntax like ReservationRepository
-            var query = supabase.postgrest.from("expenses").select()
-            
-            // Date filters - same syntax as ReservationRepository
-            query = query.gte("expense_date", startDate)
-            query = query.lte("expense_date", endDate)
-            
-            val result = query.decodeList<Expense>()
+            val result = supabase.postgrest.from("expenses")
+                .select {
+                    filter {
+                        gte("expense_date", startDate)
+                        lte("expense_date", endDate)
+                    }
+                }
+                .decodeList<Expense>()
             
             android.util.Log.d("ExpenseRepo", "Despesas brutas do banco: ${result.size}, total: R$ ${result.sumOf { it.amount ?: 0.0 }}")
             

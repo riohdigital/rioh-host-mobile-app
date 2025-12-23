@@ -28,6 +28,10 @@ class ReservationRepository {
         }
     }
 
+    /**
+     * Get reservations filtered by date range, properties, and platform.
+     * Uses overlap logic: check_out >= startDate AND check_in <= endDate
+     */
     suspend fun getReservationsFiltered(
         startDate: String,
         endDate: String,
@@ -35,7 +39,7 @@ class ReservationRepository {
         platform: String? = null
     ): List<Reservation> {
         return try {
-            android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate, platform: $platform")
+            android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate")
             
             val result = supabase.postgrest.from("reservations")
                 .select {
@@ -49,6 +53,7 @@ class ReservationRepository {
                 }
                 .decodeList<Reservation>()
             
+            // Property filter (applied client-side)
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                 result.filter { reservation -> 
                     reservation.propertyId?.let { propertyIds.contains(it) } ?: false
