@@ -27,13 +27,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun PropertiesListScreen(
     viewModel: PropertiesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onPropertyClick: (String) -> Unit
+    onPropertyClick: (String) -> Unit,
+    onCreateNew: () -> Unit = {}
 ) {
     val properties by viewModel.properties.collectAsState()
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: Add Property */ }) {
+            FloatingActionButton(onClick = onCreateNew) {
                 Icon(Icons.Default.Add, contentDescription = "Adicionar Imóvel")
             }
         }
@@ -62,6 +63,9 @@ fun PropertiesListScreen(
 
 @Composable
 fun PropertyItemCard(property: Property, onClick: () -> Unit) {
+    val statusActive = property.status?.equals("Ativo", ignoreCase = true) == true ||
+                       property.status?.equals("active", ignoreCase = true) == true
+    
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -75,8 +79,8 @@ fun PropertyItemCard(property: Property, onClick: () -> Unit) {
                     Text(property.address, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
                 Text(
-                    text = if (property.status == "active") "Ativo" else "Inativo",
-                    color = if (property.status == "active") Color(0xFF4CAF50) else Color.Gray,
+                    text = if (statusActive) "Ativo" else property.status ?: "Inativo",
+                    color = if (statusActive) Color(0xFF4CAF50) else Color.Gray,
                     style = MaterialTheme.typography.labelSmall
                 )
             }
