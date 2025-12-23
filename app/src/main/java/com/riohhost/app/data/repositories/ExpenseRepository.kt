@@ -30,7 +30,7 @@ class ExpenseRepository {
 
     /**
      * Get expenses filtered by date range and optionally by properties.
-     * Uses the same filter logic as the web app:
+     * Uses the SAME SYNTAX as ReservationRepository which works correctly:
      * - expense_date >= startDate
      * - expense_date <= endDate
      */
@@ -42,19 +42,18 @@ class ExpenseRepository {
         return try {
             android.util.Log.d("ExpenseRepo", "Buscando despesas: $startDate a $endDate")
             
-            // Query with date filters inside select block - CORRECT SUPABASE SDK SYNTAX
-            val result = supabase.postgrest.from("expenses")
-                .select {
-                    filter {
-                        gte("expense_date", startDate)
-                        lte("expense_date", endDate)
-                    }
-                }
-                .decodeList<Expense>()
+            // Use chained query syntax like ReservationRepository
+            var query = supabase.postgrest.from("expenses").select()
             
-            android.util.Log.d("ExpenseRepo", "Despesas antes do filtro de propriedade: ${result.size}")
+            // Date filters - same syntax as ReservationRepository
+            query = query.gte("expense_date", startDate)
+            query = query.lte("expense_date", endDate)
             
-            // Property filter (applied client-side for flexibility)
+            val result = query.decodeList<Expense>()
+            
+            android.util.Log.d("ExpenseRepo", "Despesas brutas do banco: ${result.size}, total: R$ ${result.sumOf { it.amount ?: 0.0 }}")
+            
+            // Property filter (applied client-side)
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                 result.filter { expense -> 
                     expense.propertyId?.let { propertyIds.contains(it) } ?: false
@@ -63,7 +62,7 @@ class ExpenseRepository {
                 result
             }
             
-            android.util.Log.d("ExpenseRepo", "Despesas após filtro: ${filteredResult.size}, total: R$ ${filteredResult.sumOf { it.amount ?: 0.0 }}")
+            android.util.Log.d("ExpenseRepo", "Despesas filtradas: ${filteredResult.size}, total: R$ ${filteredResult.sumOf { it.amount ?: 0.0 }}")
             filteredResult
         } catch (e: Exception) {
             android.util.Log.e("ExpenseRepo", "ERRO ao buscar despesas filtradas: ${e.message}", e)
