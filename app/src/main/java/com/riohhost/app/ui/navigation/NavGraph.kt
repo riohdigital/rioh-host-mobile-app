@@ -79,7 +79,7 @@ fun NavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // Global filters shared across screens
+    // Global filters shared across screens - single instance for entire app
     val globalFiltersViewModel: GlobalFiltersViewModel = viewModel()
 
     val mainScreens = listOf(
@@ -121,9 +121,7 @@ fun NavGraph() {
         floatingActionButton = {
             if (showBottomBar) {
                 Column(horizontalAlignment = Alignment.End) {
-                    // Expanded menu items
                     if (fabExpanded) {
-                        // Chat AI
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Chat IA", style = MaterialTheme.typography.labelMedium)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -139,7 +137,6 @@ fun NavGraph() {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Cleaning Management
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Faxinas", style = MaterialTheme.typography.labelMedium)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -155,7 +152,6 @@ fun NavGraph() {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // New Reservation
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Nova Reserva", style = MaterialTheme.typography.labelMedium)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -171,7 +167,6 @@ fun NavGraph() {
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // New Property
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Novo Imóvel", style = MaterialTheme.typography.labelMedium)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -188,7 +183,6 @@ fun NavGraph() {
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                     
-                    // Main FAB
                     FloatingActionButton(
                         onClick = { fabExpanded = !fabExpanded },
                         containerColor = if (fabExpanded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
@@ -227,8 +221,9 @@ fun NavGraph() {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+            // Dashboard now receives the shared GlobalFiltersViewModel
             composable(Screen.Dashboard.route) {
-                DashboardScreen()
+                DashboardScreen(globalFiltersViewModel = globalFiltersViewModel)
             }
             composable(Screen.Cleaner.route) {
                 CleanerDashboardScreen()

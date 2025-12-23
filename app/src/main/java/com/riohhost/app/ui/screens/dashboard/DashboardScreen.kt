@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,18 +32,40 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.riohhost.app.ui.GlobalFiltersViewModel
 import com.riohhost.app.ui.components.KPICard
 import com.riohhost.app.ui.theme.AirbnbColor
 import com.riohhost.app.ui.theme.BookingColor
 import com.riohhost.app.ui.theme.DirectColor
 import com.riohhost.app.utils.CurrencyUtils
 
+/**
+ * Dashboard screen that reacts to GlobalFiltersViewModel changes.
+ * Must receive the shared GlobalFiltersViewModel from NavGraph.
+ */
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = viewModel()
+    globalFiltersViewModel: GlobalFiltersViewModel
 ) {
+    // Collect filter values
+    val dateRangeStrings by globalFiltersViewModel.dateRangeStrings.collectAsState()
+    val selectedProperties by globalFiltersViewModel.selectedProperties.collectAsState()
+    val selectedPlatform by globalFiltersViewModel.selectedPlatform.collectAsState()
+    
+    // Create ViewModel that will load data based on filters
+    val viewModel = androidx.lifecycle.viewmodel.compose.viewModel<DashboardViewModel>()
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Load data whenever filters change
+    LaunchedEffect(dateRangeStrings, selectedProperties, selectedPlatform) {
+        android.util.Log.d("DashboardScreen", "Filtros mudaram: $dateRangeStrings, props: $selectedProperties, platform: $selectedPlatform")
+        viewModel.loadDashboardData(
+            startDate = dateRangeStrings.first,
+            endDate = dateRangeStrings.second,
+            propertyIds = if (selectedProperties.contains("todas")) null else selectedProperties,
+            platform = if (selectedPlatform == "all") null else selectedPlatform
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(
@@ -55,7 +78,14 @@ fun DashboardScreen(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            IconButton(onClick = { viewModel.refresh() }) {
+            IconButton(onClick = {
+                viewModel.loadDashboardData(
+                    startDate = dateRangeStrings.first,
+                    endDate = dateRangeStrings.second,
+                    propertyIds = if (selectedProperties.contains("todas")) null else selectedProperties,
+                    platform = if (selectedPlatform == "all") null else selectedPlatform
+                )
+            }) {
                 Icon(Icons.Default.Refresh, contentDescription = "Atualizar")
             }
         }
