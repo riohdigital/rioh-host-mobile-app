@@ -5,9 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserProfile(
-    val id: String, // likely UUID
-    @SerialName("user_id") val userId: String, // Reference to auth.users
-    val role: String, // master, owner, gestor, faxineira
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val role: String,
     @SerialName("full_name") val fullName: String? = null,
     val email: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
@@ -20,34 +20,67 @@ data class Property(
     val name: String,
     val nickname: String? = null,
     val address: String? = null,
-    @SerialName("property_type") val propertyType: String? = null, // casa, apartamento, etc
-    val status: String? = null, // ativo, inativo
+    @SerialName("property_type") val propertyType: String? = null,
+    val status: String? = null,
     @SerialName("airbnb_link") val airbnbLink: String? = null,
     @SerialName("booking_link") val bookingLink: String? = null,
-    @SerialName("commission_rate") val commissionRate: Double? = null,
-    @SerialName("cleaning_fee") val cleaningFee: Double? = null,
-    @SerialName("base_nightly_price") val baseNightlyPrice: Double? = null,
+    @SerialName("commission_rate") val commissionRate: String? = null,
+    @SerialName("cleaning_fee") val cleaningFee: String? = null,
+    @SerialName("base_nightly_price") val baseNightlyPrice: String? = null,
     @SerialName("max_guests") val maxGuests: Int? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    @SerialName("default_checkin_time") val defaultCheckinTime: String? = null,
+    @SerialName("default_checkout_time") val defaultCheckoutTime: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("created_by") val createdBy: String? = null
 )
 
 @Serializable
 data class Reservation(
     val id: String,
-    @SerialName("property_id") val propertyId: String,
-    @SerialName("guest_name") val guestName: String? = null,
-    @SerialName("guest_email") val guestEmail: String? = null,
-    @SerialName("guest_phone") val guestPhone: String? = null,
-    @SerialName("number_of_guests") val numberOfGuests: Int? = null,
-    @SerialName("reservation_code") val reservationCode: String? = null,
-    @SerialName("check_in_date") val checkInDate: String, // ISO date
-    @SerialName("check_out_date") val checkOutDate: String, // ISO date
-    @SerialName("cleaning_status") val cleaningStatus: String? = null,
-    @SerialName("cleaner_user_id") val cleanerUserId: String? = null,
-    @SerialName("cleaning_fee") val cleaningFee: Double? = null,
-    @SerialName("reservation_status") val reservationStatus: String? = null,
+    @SerialName("property_id") val propertyId: String? = null,
     val platform: String? = null,
-    @SerialName("total_revenue") val totalRevenue: Double? = null
+    @SerialName("reservation_code") val reservationCode: String? = null,
+    @SerialName("check_in_date") val checkInDate: String? = null,
+    @SerialName("check_out_date") val checkOutDate: String? = null,
+    @SerialName("guest_name") val guestName: String? = null,
+    @SerialName("guest_phone") val guestPhone: String? = null,
+    @SerialName("guest_email") val guestEmail: String? = null,
+    @SerialName("number_of_guests") val numberOfGuests: Int? = null,
+    
+    // Campos financeiros - String para numeric do Supabase (evita problemas de precisão)
+    @SerialName("total_revenue") val totalRevenue: String? = null,
+    @SerialName("base_revenue") val baseRevenue: String? = null,
+    @SerialName("commission_amount") val commissionAmount: String? = null,
+    @SerialName("net_revenue") val netRevenue: String? = null,
+    @SerialName("cleaning_fee") val cleaningFee: String? = null,
+    
+    // Status
+    @SerialName("reservation_status") val reservationStatus: String? = null,
+    @SerialName("payment_status") val paymentStatus: String? = null,
+    @SerialName("payment_date") val paymentDate: String? = null,
+    
+    // Horários - time do Supabase vem como String "HH:mm:ss"
+    @SerialName("checkin_time") val checkinTime: String? = null,
+    @SerialName("checkout_time") val checkoutTime: String? = null,
+    
+    // Campos de limpeza
+    @SerialName("cleaner_user_id") val cleanerUserId: String? = null,
+    @SerialName("cleaning_status") val cleaningStatus: String? = null,
+    @SerialName("cleaning_payment_status") val cleaningPaymentStatus: String? = null,
+    @SerialName("cleaning_rating") val cleaningRating: Int? = null,
+    @SerialName("cleaning_notes") val cleaningNotes: String? = null,
+    @SerialName("cleaning_allocation") val cleaningAllocation: String? = null,
+    
+    // Flags
+    @SerialName("is_communicated") val isCommunicated: Boolean? = false,
+    @SerialName("receipt_sent") val receiptSent: Boolean? = false,
+    
+    // Auditoria
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("created_by") val createdBy: String? = null,
+    @SerialName("created_by_source") val createdBySource: String? = null,
+    @SerialName("automation_metadata") val automationMetadata: String? = null
 )
 
 @Serializable
@@ -71,15 +104,6 @@ data class ChatMessage(
     val id: String,
     val role: MessageRole,
     val content: String,
-    val timestamp: String, // ISO Date
-    val status: String? = null // sending, sent, error
-)
-
-@Serializable
-data class NotificationDestination(
-    val id: String,
-    @SerialName("destination_name") val name: String,
-    @SerialName("whatsapp_number") val whatsappNumber: String?,
-    @SerialName("destination_role") val role: String,
-    @SerialName("is_authenticated") val isAuthenticated: Boolean = false
+    val timestamp: String,
+    val status: String? = null
 )

@@ -26,20 +26,31 @@ class DashboardViewModel : ViewModel() {
             try {
                 _uiState.value = DashboardUiState.Loading
                 val properties = propertyRepository.getProperties()
-                // In a real app, we would aggregate data from reservations here to calculate metrics
-                // For now, we fetch reservations to demonstrate connection
                 val allReservations = reservationRepository.getReservations()
                 
-                val totalRevenue = allReservations.sumOf { it.totalRevenue ?: 0.0 }
-                val activePropertiesCount = properties.count { it.status == "active" } // Assumption on status
+                android.util.Log.d("DashboardVM", "Propriedades: ${properties.size}, Reservas: ${allReservations.size}")
+                
+                // totalRevenue é String do Supabase - converter para Double
+                val totalRevenue = allReservations.sumOf { 
+                    it.totalRevenue?.toDoubleOrNull() ?: 0.0 
+                }
+                
+                // Status no Supabase é "Ativo" (português), não "active"
+                val activePropertiesCount = properties.count { 
+                    it.status?.equals("Ativo", ignoreCase = true) == true ||
+                    it.status?.equals("active", ignoreCase = true) == true
+                }
+                
+                android.util.Log.d("DashboardVM", "Total Revenue: $totalRevenue, Active Properties: $activePropertiesCount")
 
                 _uiState.value = DashboardUiState.Success(
                     properties = properties,
                     totalRevenue = totalRevenue,
-                    occupancyRate = 0.0, // Placeholder calculation
+                    occupancyRate = 0.0,
                     activeProperties = activePropertiesCount
                 )
             } catch (e: Exception) {
+                android.util.Log.e("DashboardVM", "Erro no dashboard: ${e.message}", e)
                 _uiState.value = DashboardUiState.Error(e.message ?: "Erro ao carregar dashboard")
             }
         }

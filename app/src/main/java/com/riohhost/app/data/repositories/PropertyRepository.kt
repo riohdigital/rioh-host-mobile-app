@@ -9,10 +9,17 @@ class PropertyRepository {
 
     suspend fun getProperties(): List<Property> {
         return try {
-            supabase.postgrest.from("properties")
+            android.util.Log.d("PropertyRepo", "Iniciando busca de propriedades...")
+            val result = supabase.postgrest.from("properties")
                 .select()
                 .decodeList<Property>()
+            android.util.Log.d("PropertyRepo", "Encontradas ${result.size} propriedades")
+            if (result.isNotEmpty()) {
+                android.util.Log.d("PropertyRepo", "Primeira propriedade: ${result.first()}")
+            }
+            result
         } catch (e: Exception) {
+            android.util.Log.e("PropertyRepo", "ERRO ao buscar propriedades: ${e.message}", e)
             emptyList()
         }
     }
@@ -25,6 +32,7 @@ class PropertyRepository {
                 }
                 .decodeSingle<Property>()
         } catch (e: Exception) {
+            android.util.Log.e("PropertyRepo", "ERRO ao buscar propriedade por ID: ${e.message}", e)
             null
         }
     }
