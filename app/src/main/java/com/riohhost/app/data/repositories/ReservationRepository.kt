@@ -42,15 +42,17 @@ class ReservationRepository {
         return try {
             android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate, platform: $platform")
             
-            var query = supabase.postgrest.from("reservations").select()
-            query = query.gte("check_out_date", startDate)
-            query = query.lte("check_in_date", endDate)
-            
-            if (!platform.isNullOrEmpty() && platform != "all") {
-                query = query.eq("platform", platform)
-            }
-            
-            val result = query.decodeList<Reservation>()
+            val result = supabase.postgrest.from("reservations")
+                .select {
+                    filter {
+                        gte("check_out_date", startDate)
+                        lte("check_in_date", endDate)
+                        if (!platform.isNullOrEmpty() && platform != "all") {
+                            eq("platform", platform)
+                        }
+                    }
+                }
+                .decodeList<Reservation>()
             
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                 result.filter { reservation -> 

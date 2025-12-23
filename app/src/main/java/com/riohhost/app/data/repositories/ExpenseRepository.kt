@@ -33,11 +33,14 @@ class ExpenseRepository {
         return try {
             android.util.Log.d("ExpenseRepo", "Buscando despesas: $startDate a $endDate")
             
-            var query = supabase.postgrest.from("expenses").select()
-            query = query.gte("expense_date", startDate)
-            query = query.lte("expense_date", endDate)
-            
-            val result = query.decodeList<Expense>()
+            val result = supabase.postgrest.from("expenses")
+                .select {
+                    filter {
+                        gte("expense_date", startDate)
+                        lte("expense_date", endDate)
+                    }
+                }
+                .decodeList<Expense>()
             
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                 result.filter { expense -> 
