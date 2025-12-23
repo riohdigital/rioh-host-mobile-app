@@ -172,7 +172,7 @@ fun Day(
                     isSelected -> Color(0xFF007AFF) // Selected Blue
                     isCheckIn -> Color(0xFF4CAF50) // Green
                     isCheckOut -> Color(0xFFF44336) // Red
-                    isOccupied -> Color(0xFFE0E0E0) // Gray
+                    isOccupied -> Color(0xFF3B82F6) // Blue for occupied
                     else -> Color.Transparent
                 }
             )
@@ -186,7 +186,7 @@ fun Day(
             text = day.date.dayOfMonth.toString(),
             color = when {
                 isSelected -> Color.White
-                isCheckIn || isCheckOut -> Color.White
+                isCheckIn || isCheckOut || isOccupied -> Color.White
                 day.position == DayPosition.MonthDate -> Color.Black
                 else -> Color.LightGray
             },
