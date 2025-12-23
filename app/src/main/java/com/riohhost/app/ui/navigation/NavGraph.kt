@@ -1,24 +1,52 @@
 package com.riohhost.app.ui.navigation
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Cleaning
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.riohhost.app.ui.screens.auth.LoginScreen
-import com.riohhost.app.ui.screens.dashboard.DashboardScreen
-import com.riohhost.app.ui.screens.cleaner.CleanerDashboardScreen
-import androidx.compose.material.icons.filled.Chat
-
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.riohhost.app.ui.GlobalFiltersViewModel
+import com.riohhost.app.ui.components.GlobalFilterBar
 import com.riohhost.app.ui.components.OwnerBottomNavigation
-import com.riohhost.app.ui.screens.reservations.ReservationsListScreen
+import com.riohhost.app.ui.screens.auth.LoginScreen
 import com.riohhost.app.ui.screens.calendar.CalendarScreen
-import com.riohhost.app.ui.screens.reservations.ReservationFormScreen
+import com.riohhost.app.ui.screens.cleaner.CleanerDashboardScreen
+import com.riohhost.app.ui.screens.dashboard.DashboardScreen
 import com.riohhost.app.ui.screens.properties.PropertyFormScreen
+import com.riohhost.app.ui.screens.reservations.ReservationFormScreen
+import com.riohhost.app.ui.screens.reservations.ReservationsListScreen
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -52,16 +80,41 @@ fun NavGraph() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    
+    // Global filters shared across screens
+    val globalFiltersViewModel: GlobalFiltersViewModel = viewModel()
+    val properties by globalFiltersViewModel.availableProperties.collectAsState()
+    
+    // Load properties for filter dropdown
+    LaunchedEffect(Unit) {
+        globalFiltersViewModel.loadProperties()
+    }
 
-    val showBottomBar = currentRoute in listOf(
+    val mainScreens = listOf(
         Screen.Dashboard.route,
         Screen.Reservations.route,
         Screen.Calendar.route,
         Screen.Properties.route,
         Screen.Users.route
     )
+    val showBottomBar = currentRoute in mainScreens
+    val showFilterBar = currentRoute in listOf(
+        Screen.Dashboard.route,
+        Screen.Reservations.route,
+        Screen.Calendar.route
+    )
+    
+    var fabExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
+        topBar = {
+            if (showFilterBar) {
+                GlobalFilterBar(
+                    filtersViewModel = globalFiltersViewModel,
+                    properties = properties
+                )
+            }
+        },
         bottomBar = {
             if (showBottomBar) {
                 OwnerBottomNavigation(
@@ -78,15 +131,85 @@ fun NavGraph() {
         },
         floatingActionButton = {
             if (showBottomBar) {
-                androidx.compose.material3.FloatingActionButton(
-                    onClick = { navController.navigate(Screen.Chat.route) },
-                    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
-                    contentColor = androidx.compose.ui.graphics.Color.White
-                ) {
-                    androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Default.Chat,
-                        contentDescription = "Chat AI"
-                    )
+                Column(horizontalAlignment = Alignment.End) {
+                    // Expanded menu items
+                    if (fabExpanded) {
+                        // Chat AI
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Chat IA", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            SmallFloatingActionButton(
+                                onClick = { 
+                                    fabExpanded = false
+                                    navController.navigate(Screen.Chat.route) 
+                                },
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            ) {
+                                Icon(Icons.Default.Chat, contentDescription = "Chat AI", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Cleaning Management
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Faxinas", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            SmallFloatingActionButton(
+                                onClick = {
+                                    fabExpanded = false
+                                    navController.navigate(Screen.CleaningManagement.route)
+                                },
+                                containerColor = MaterialTheme.colorScheme.tertiary
+                            ) {
+                                Icon(Icons.Default.Home, contentDescription = "Faxinas", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // New Reservation
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Nova Reserva", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            SmallFloatingActionButton(
+                                onClick = {
+                                    fabExpanded = false
+                                    navController.navigate(Screen.ReservationForm.route)
+                                },
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = "Nova Reserva", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // New Property
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Novo Imóvel", style = MaterialTheme.typography.labelMedium)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            SmallFloatingActionButton(
+                                onClick = {
+                                    fabExpanded = false
+                                    navController.navigate(Screen.PropertyForm.route)
+                                },
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ) {
+                                Icon(Icons.Default.Home, contentDescription = "Novo Imóvel", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                    
+                    // Main FAB
+                    FloatingActionButton(
+                        onClick = { fabExpanded = !fabExpanded },
+                        containerColor = if (fabExpanded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    ) {
+                        Icon(
+                            if (fabExpanded) Icons.Default.Close else Icons.Default.Add,
+                            contentDescription = if (fabExpanded) "Fechar" else "Ações"
+                        )
+                    }
                 }
             }
         }

@@ -7,6 +7,9 @@ import io.github.jan.supabase.postgrest.postgrest
 class ExpenseRepository {
     private val supabase = SupabaseClient.client
 
+    /**
+     * Get all expenses (optionally filtered by property).
+     */
     suspend fun getExpenses(propertyId: String? = null): List<Expense> {
         return try {
             android.util.Log.d("ExpenseRepo", "Iniciando busca de despesas...")
@@ -25,6 +28,12 @@ class ExpenseRepository {
         }
     }
 
+    /**
+     * Get expenses filtered by date range and optionally by properties.
+     * Uses the same filter logic as the web app:
+     * - expense_date >= startDate
+     * - expense_date <= endDate
+     */
     suspend fun getExpensesFiltered(
         startDate: String,
         endDate: String,
@@ -33,6 +42,7 @@ class ExpenseRepository {
         return try {
             android.util.Log.d("ExpenseRepo", "Buscando despesas: $startDate a $endDate")
             
+            // Query with date filters inside select block - CORRECT SUPABASE SDK SYNTAX
             val result = supabase.postgrest.from("expenses")
                 .select {
                     filter {
@@ -42,6 +52,9 @@ class ExpenseRepository {
                 }
                 .decodeList<Expense>()
             
+            android.util.Log.d("ExpenseRepo", "Despesas antes do filtro de propriedade: ${result.size}")
+            
+            // Property filter (applied client-side for flexibility)
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                 result.filter { expense -> 
                     expense.propertyId?.let { propertyIds.contains(it) } ?: false
@@ -50,7 +63,7 @@ class ExpenseRepository {
                 result
             }
             
-            android.util.Log.d("ExpenseRepo", "Encontradas ${filteredResult.size} despesas filtradas")
+            android.util.Log.d("ExpenseRepo", "Despesas após filtro: ${filteredResult.size}, total: R$ ${filteredResult.sumOf { it.amount ?: 0.0 }}")
             filteredResult
         } catch (e: Exception) {
             android.util.Log.e("ExpenseRepo", "ERRO ao buscar despesas filtradas: ${e.message}", e)
@@ -58,10 +71,15 @@ class ExpenseRepository {
         }
     }
 
+    /**
+     * Get expense by ID.
+     */
     suspend fun getExpenseById(id: String): Expense? {
         return try {
             supabase.postgrest.from("expenses")
-                .select { filter { eq("id", id) } }
+                .select {
+                    filter { eq("id", id) }
+                }
                 .decodeSingle<Expense>()
         } catch (e: Exception) {
             android.util.Log.e("ExpenseRepo", "ERRO ao buscar despesa por ID: ${e.message}", e)
