@@ -32,17 +32,25 @@ object DateRangeCalculator {
     
     /**
      * Calculates the date range based on a period code.
+     * Uses America/Sao_Paulo timezone for all calculations.
+     * 
+     * @param period Period code (e.g., "current_year", "last_month")
+     * @param customStart Custom start date (only used when period == "custom")
+     * @param customEnd Custom end date (only used when period == "custom")
+     * @return Pair of (startDate, endDate) as LocalDate
      */
     fun calculate(
         period: String,
         customStart: LocalDate? = null,
         customEnd: LocalDate? = null
     ): Pair<LocalDate, LocalDate> {
-        val today = LocalDate.now()
+        // Use São Paulo timezone
+        val saoPauloZone = java.time.ZoneId.of("America/Sao_Paulo")
+        val today = LocalDate.now(saoPauloZone)
         
         return when (period) {
             Periods.CURRENT_MONTH -> {
-                val yearMonth = YearMonth.now()
+                val yearMonth = YearMonth.now(saoPauloZone)
                 Pair(yearMonth.atDay(1), yearMonth.atEndOfMonth())
             }
             
@@ -52,10 +60,12 @@ object DateRangeCalculator {
             }
             
             Periods.GENERAL -> {
+                // All historical data (1900-2099)
                 Pair(LocalDate.of(1900, 1, 1), LocalDate.of(2099, 12, 31))
             }
             
             Periods.CUSTOM -> {
+                // Use provided custom dates or fallback to current year
                 Pair(
                     customStart ?: LocalDate.of(today.year, 1, 1),
                     customEnd ?: LocalDate.of(today.year, 12, 31)
@@ -63,12 +73,21 @@ object DateRangeCalculator {
             }
             
             Periods.LAST_MONTH -> {
-                val lastMonth = YearMonth.now().minusMonths(1)
+                val lastMonth = YearMonth.now(saoPauloZone).minusMonths(1)
                 Pair(lastMonth.atDay(1), lastMonth.atEndOfMonth())
             }
             
-            Periods.LAST_3_MONTHS -> Pair(today.minusMonths(3), today)
-            Periods.LAST_6_MONTHS -> Pair(today.minusMonths(6), today)
+            Periods.LAST_3_MONTHS -> {
+                val endDate = today
+                val startDate = today.minusMonths(3)
+                Pair(startDate, endDate)
+            }
+            
+            Periods.LAST_6_MONTHS -> {
+                val endDate = today
+                val startDate = today.minusMonths(6)
+                Pair(startDate, endDate)
+            }
             
             Periods.LAST_YEAR -> {
                 val lastYear = today.year - 1
@@ -76,23 +95,46 @@ object DateRangeCalculator {
             }
             
             Periods.NEXT_MONTH -> {
-                val nextMonth = YearMonth.now().plusMonths(1)
+                val nextMonth = YearMonth.now(saoPauloZone).plusMonths(1)
                 Pair(nextMonth.atDay(1), nextMonth.atEndOfMonth())
             }
             
-            Periods.NEXT_3_MONTHS -> Pair(today, today.plusMonths(3))
-            Periods.NEXT_6_MONTHS -> Pair(today, today.plusMonths(6))
-            Periods.NEXT_12_MONTHS -> Pair(today, today.plusMonths(12))
+            Periods.NEXT_3_MONTHS -> {
+                val startDate = today
+                val endDate = today.plusMonths(3)
+                Pair(startDate, endDate)
+            }
+            
+            Periods.NEXT_6_MONTHS -> {
+                val startDate = today
+                val endDate = today.plusMonths(6)
+                Pair(startDate, endDate)
+            }
+            
+            Periods.NEXT_12_MONTHS -> {
+                val startDate = today
+                val endDate = today.plusMonths(12)
+                Pair(startDate, endDate)
+            }
             
             else -> {
+                // Default to current year
                 val year = today.year
                 Pair(LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31))
             }
         }
     }
     
-    fun toIsoString(date: LocalDate): String = date.format(ISO_DATE_FORMAT)
+    /**
+     * Formats a LocalDate to ISO string (YYYY-MM-DD) for Supabase queries.
+     */
+    fun toIsoString(date: LocalDate): String {
+        return date.format(ISO_DATE_FORMAT)
+    }
     
+    /**
+     * Parses an ISO date string to LocalDate.
+     */
     fun fromIsoString(dateString: String): LocalDate? {
         return try {
             LocalDate.parse(dateString, ISO_DATE_FORMAT)
@@ -101,6 +143,9 @@ object DateRangeCalculator {
         }
     }
     
+    /**
+     * Returns a list of all available periods for UI dropdowns.
+     */
     fun getAllPeriods(): List<Pair<String, String>> {
         return listOf(
             Periods.CURRENT_MONTH to "Mês Atual",
