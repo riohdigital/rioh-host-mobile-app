@@ -23,12 +23,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.riohhost.app.ui.GlobalFiltersViewModel
+import com.riohhost.app.ui.components.FilterBar
 import com.riohhost.app.ui.components.KPICard
 import com.riohhost.app.ui.theme.AirbnbColor
 import com.riohhost.app.ui.theme.BookingColor
@@ -37,9 +40,22 @@ import com.riohhost.app.utils.CurrencyUtils
 
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = viewModel()
+    filtersViewModel: GlobalFiltersViewModel = viewModel(),
+    dashboardViewModel: DashboardViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by dashboardViewModel.uiState.collectAsState()
+    val dateRange by filtersViewModel.dateRange.collectAsState()
+
+    // Update dashboard when filters change
+    androidx.compose.runtime.LaunchedEffect(dateRange, filtersViewModel.selectedProperties.collectAsState().value, filtersViewModel.selectedPlatform.collectAsState().value) {
+        val (start, end) = filtersViewModel.dateRangeStrings.value
+        dashboardViewModel.loadDashboardData(
+            startDate = start,
+            endDate = end,
+            propertyIds = filtersViewModel.getPropertyFilter(),
+            platform = filtersViewModel.getPlatformFilter()
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -56,10 +72,20 @@ fun DashboardScreen(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            IconButton(onClick = { viewModel.refresh() }) {
+            IconButton(onClick = { dashboardViewModel.refresh() }) {
                 Icon(Icons.Default.Refresh, contentDescription = "Atualizar")
             }
         }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Filter Bar
+        val properties = (uiState as? DashboardUiState.Success)?.properties ?: emptyList()
+        FilterBar(
+            filtersViewModel = filtersViewModel,
+            properties = properties
+        )
+        
         Spacer(modifier = Modifier.height(16.dp))
 
         when (val state = uiState) {
