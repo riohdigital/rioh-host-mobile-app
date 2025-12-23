@@ -91,20 +91,6 @@ fun NavGraph() {
                     }
                 )
             }
-        },
-        floatingActionButton = {
-            if (showBottomBar) {
-                FloatingActionButton(
-                    onClick = { navController.navigate(Screen.Chat.route) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                ) {
-                    Icon(
-                        Icons.Default.Chat,
-                        contentDescription = "Chat AI"
-                    )
-                }
-            }
         }
     ) { innerPadding ->
         NavHost(
