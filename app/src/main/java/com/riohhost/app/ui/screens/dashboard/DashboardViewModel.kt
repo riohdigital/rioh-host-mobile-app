@@ -91,8 +91,6 @@ class DashboardViewModel(
                 
                 val kpis = calculateKpis(reservations, expenses, properties, startDate, endDate)
                 
-                android.util.Log.d("DashboardVM", "KPIs: $kpis")
-
                 _uiState.value = DashboardUiState.Success(
                     kpis = kpis,
                     properties = properties,
@@ -112,17 +110,20 @@ class DashboardViewModel(
         startDate: String,
         endDate: String
     ): DashboardKpis {
+        // Revenue calculations
         val totalRevenue = reservations.sumOf { it.totalRevenue ?: 0.0 }
         val netRevenue = reservations.sumOf { it.netRevenue ?: 0.0 }
         val totalCommission = reservations.sumOf { it.commissionAmount ?: 0.0 }
         val totalExpenses = expenses.sumOf { it.amount ?: 0.0 }
         val netProfit = netRevenue - totalExpenses
         
+        // Active properties
         val activePropertiesCount = properties.count { 
             it.status?.equals("Ativo", ignoreCase = true) == true ||
             it.status?.equals("active", ignoreCase = true) == true
         }
         
+        // Occupancy rate
         val occupancyRate = calculateOccupancyRate(
             reservations = reservations,
             startDate = startDate,
@@ -130,9 +131,17 @@ class DashboardViewModel(
             propertiesCount = max(1, activePropertiesCount)
         )
         
+        // Revenue by platform
         val revenueByPlatform = reservations
             .groupBy { it.platform ?: "Direto" }
             .mapValues { (_, list) -> list.sumOf { it.totalRevenue ?: 0.0 } }
+        
+        // Payment status counts
+        val paymentStatusCounts = PaymentStatusCounts(
+            paid = reservations.count { it.paymentStatus?.equals("Pago", ignoreCase = true) == true },
+            pending = reservations.count { it.paymentStatus?.equals("Pendente", ignoreCase = true) == true },
+            overdue = reservations.count { it.paymentStatus?.equals("Atrasado", ignoreCase = true) == true }
+        )
         
         return DashboardKpis(
             totalRevenue = totalRevenue,
@@ -143,7 +152,8 @@ class DashboardViewModel(
             occupancyRate = occupancyRate,
             activeProperties = activePropertiesCount,
             totalReservations = reservations.size,
-            revenueByPlatform = revenueByPlatform
+            revenueByPlatform = revenueByPlatform,
+            paymentStatusCounts = paymentStatusCounts
         )
     }
 
@@ -199,6 +209,12 @@ class DashboardViewModel(
     }
 }
 
+data class PaymentStatusCounts(
+    val paid: Int,
+    val pending: Int,
+    val overdue: Int
+)
+
 data class DashboardKpis(
     val totalRevenue: Double,
     val netRevenue: Double,
@@ -208,7 +224,8 @@ data class DashboardKpis(
     val occupancyRate: Double,
     val activeProperties: Int,
     val totalReservations: Int,
-    val revenueByPlatform: Map<String, Double>
+    val revenueByPlatform: Map<String, Double>,
+    val paymentStatusCounts: PaymentStatusCounts
 )
 
 sealed class DashboardUiState {
