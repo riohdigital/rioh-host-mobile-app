@@ -130,7 +130,7 @@ fun ReservationDetailScreen(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total")
                             Text(
-                                CurrencyUtils.formatBRL(reservation!!.totalRevenue?.toDoubleOrNull() ?: 0.0),
+                                CurrencyUtils.formatBRL(reservation!!.totalRevenue ?: 0.0),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -138,7 +138,7 @@ fun ReservationDetailScreen(
                         if (reservation!!.cleaningFee != null) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Taxa de Limpeza", style = MaterialTheme.typography.bodySmall)
-                                Text(CurrencyUtils.formatBRL(reservation!!.cleaningFee?.toDoubleOrNull() ?: 0.0), style = MaterialTheme.typography.bodySmall)
+                                Text(CurrencyUtils.formatBRL(reservation!!.cleaningFee ?: 0.0), style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }

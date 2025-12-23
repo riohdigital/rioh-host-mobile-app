@@ -120,7 +120,7 @@ fun ReservationItemCard(reservation: Reservation, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = CurrencyUtils.formatBRL(reservation.totalRevenue?.toDoubleOrNull() ?: 0.0),
+                    text = CurrencyUtils.formatBRL(reservation.totalRevenue ?: 0.0),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

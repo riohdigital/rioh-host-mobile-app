@@ -30,9 +30,9 @@ class DashboardViewModel : ViewModel() {
                 
                 android.util.Log.d("DashboardVM", "Propriedades: ${properties.size}, Reservas: ${allReservations.size}")
                 
-                // totalRevenue é String do Supabase - converter para Double
+                // totalRevenue agora é Double do Supabase
                 val totalRevenue = allReservations.sumOf { 
-                    it.totalRevenue?.toDoubleOrNull() ?: 0.0 
+                    it.totalRevenue ?: 0.0 
                 }
                 
                 // Status no Supabase é "Ativo" (português), não "active"
