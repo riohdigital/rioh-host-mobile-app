@@ -59,9 +59,15 @@ private val CommissionBg = Color(0xFF1E293B)
 
 @Composable
 fun DashboardScreen(
+    globalFiltersViewModel: com.riohhost.app.ui.GlobalFiltersViewModel,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Inject filters
+    LaunchedEffect(globalFiltersViewModel) {
+        viewModel.setFilters(globalFiltersViewModel)
+    }
 
     Column(
         modifier = Modifier
@@ -303,7 +309,7 @@ private fun GradientKPICard(
                         .size(40.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color.White.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
