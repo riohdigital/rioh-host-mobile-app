@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,12 +79,12 @@ fun ReservationsListScreen(
                         onClick = { /* TODO */ }
                     ),
                      com.riohhost.app.ui.components.FabItem(
-                        icon = androidx.compose.material.icons.filled.Block,
+                        icon = Icons.Default.Block,
                         label = "Novo Bloqueio",
                         onClick = { /* TODO */ }
                     ),
                     com.riohhost.app.ui.components.FabItem(
-                        icon = androidx.compose.material.icons.filled.Chat,
+                        icon = Icons.Default.Chat,
                         label = "Nova Mensagem",
                         onClick = { /* TODO */ }
                     )
