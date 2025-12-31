@@ -19,9 +19,11 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
 
-class DashboardViewModel(
-    private val globalFilters: GlobalFiltersViewModel? = null
-) : ViewModel() {
+class DashboardViewModel : ViewModel() {
+    
+    // Injected after creation
+    var globalFilters: GlobalFiltersViewModel? = null
+        private set
     
     private val propertyRepository = PropertyRepository()
     private val reservationRepository = ReservationRepository()
@@ -31,33 +33,35 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        if (globalFilters != null) {
+        // Initial load with defaults
+        refresh()
+    }
+    
+    fun setFilters(filters: GlobalFiltersViewModel) {
+        if (globalFilters != filters) {
+            globalFilters = filters
             observeFilterChanges()
-        } else {
-            loadDashboardData(
-                startDate = DateRangeCalculator.toIsoString(LocalDate.now().withDayOfYear(1)),
-                endDate = DateRangeCalculator.toIsoString(LocalDate.now().withMonth(12).withDayOfMonth(31)),
-                propertyIds = null,
-                platform = null
-            )
+            refresh() // Trigger immediate refresh with new filters
         }
     }
 
     private fun observeFilterChanges() {
         viewModelScope.launch {
-            combine(
-                globalFilters!!.dateRangeStrings,
-                globalFilters.selectedProperties,
-                globalFilters.selectedPlatform
-            ) { dateRange, properties, platform ->
-                Triple(dateRange, properties, platform)
-            }.collectLatest { (dateRange, properties, platform) ->
-                loadDashboardData(
-                    startDate = dateRange.first,
-                    endDate = dateRange.second,
-                    propertyIds = if (properties.contains("todas")) null else properties,
-                    platform = if (platform == "all") null else platform
-                )
+            globalFilters?.let { filters ->
+                combine(
+                    filters.dateRangeStrings,
+                    filters.selectedProperties,
+                    filters.selectedPlatform
+                ) { dateRange, properties, platform ->
+                    Triple(dateRange, properties, platform)
+                }.collectLatest { (dateRange, properties, platform) ->
+                    loadDashboardData(
+                        startDate = dateRange.first,
+                        endDate = dateRange.second,
+                        propertyIds = if (properties.contains("todas")) null else properties,
+                        platform = if (platform == "all") null else platform
+                    )
+                }
             }
         }
     }
@@ -72,8 +76,9 @@ class DashboardViewModel(
             try {
                 _uiState.value = DashboardUiState.Loading
                 
-                android.util.Log.d("DashboardVM", "Carregando: $startDate a $endDate")
+                android.util.Log.d("DashboardVM", "Carregando: $startDate a $endDate, props: $propertyIds, platform: $platform")
                 
+                // Fetch all data in parallel
                 val properties = propertyRepository.getProperties()
                 val reservations = reservationRepository.getReservationsFiltered(
                     startDate = startDate,
@@ -89,8 +94,17 @@ class DashboardViewModel(
                 
                 android.util.Log.d("DashboardVM", "Dados: ${properties.size} props, ${reservations.size} reservas, ${expenses.size} despesas")
                 
-                val kpis = calculateKpis(reservations, expenses, properties, startDate, endDate)
+                // Calculate KPIs
+                val kpis = calculateKpis(
+                    reservations = reservations,
+                    expenses = expenses,
+                    properties = properties,
+                    startDate = startDate,
+                    endDate = endDate
+                )
                 
+                android.util.Log.d("DashboardVM", "KPIs: $kpis")
+
                 _uiState.value = DashboardUiState.Success(
                     kpis = kpis,
                     properties = properties,
@@ -114,7 +128,11 @@ class DashboardViewModel(
         val totalRevenue = reservations.sumOf { it.totalRevenue ?: 0.0 }
         val netRevenue = reservations.sumOf { it.netRevenue ?: 0.0 }
         val totalCommission = reservations.sumOf { it.commissionAmount ?: 0.0 }
+        
+        // Expense calculations
         val totalExpenses = expenses.sumOf { it.amount ?: 0.0 }
+        
+        // Profit
         val netProfit = netRevenue - totalExpenses
         
         // Active properties
@@ -123,7 +141,7 @@ class DashboardViewModel(
             it.status?.equals("active", ignoreCase = true) == true
         }
         
-        // Occupancy rate
+        // Occupancy rate calculation
         val occupancyRate = calculateOccupancyRate(
             reservations = reservations,
             startDate = startDate,
@@ -134,14 +152,9 @@ class DashboardViewModel(
         // Revenue by platform
         val revenueByPlatform = reservations
             .groupBy { it.platform ?: "Direto" }
-            .mapValues { (_, list) -> list.sumOf { it.totalRevenue ?: 0.0 } }
-        
-        // Payment status counts
-        val paymentStatusCounts = PaymentStatusCounts(
-            paid = reservations.count { it.paymentStatus?.equals("Pago", ignoreCase = true) == true },
-            pending = reservations.count { it.paymentStatus?.equals("Pendente", ignoreCase = true) == true },
-            overdue = reservations.count { it.paymentStatus?.equals("Atrasado", ignoreCase = true) == true }
-        )
+            .mapValues { (_, reservations) -> 
+                reservations.sumOf { it.totalRevenue ?: 0.0 } 
+            }
         
         return DashboardKpis(
             totalRevenue = totalRevenue,
@@ -152,11 +165,14 @@ class DashboardViewModel(
             occupancyRate = occupancyRate,
             activeProperties = activePropertiesCount,
             totalReservations = reservations.size,
-            revenueByPlatform = revenueByPlatform,
-            paymentStatusCounts = paymentStatusCounts
+            revenueByPlatform = revenueByPlatform
         )
     }
 
+    /**
+     * Calculates occupancy rate based on days booked within the period.
+     * Uses overlap logic: counts only the days of each reservation that fall within the period.
+     */
     private fun calculateOccupancyRate(
         reservations: List<Reservation>,
         startDate: String,
@@ -170,6 +186,7 @@ class DashboardViewModel(
             val checkIn = reservation.checkInDate?.let { DateRangeCalculator.fromIsoString(it) } ?: return@sumOf 0
             val checkOut = reservation.checkOutDate?.let { DateRangeCalculator.fromIsoString(it) } ?: return@sumOf 0
             
+            // Calculate overlap between reservation and period
             val overlapStart = maxOf(checkIn, periodStart)
             val overlapEnd = minOf(checkOut, periodEnd)
             
@@ -189,16 +206,20 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * Refresh data using current filters or defaults.
+     */
     fun refresh() {
         if (globalFilters != null) {
-            val dateRange = globalFilters.dateRangeStrings.value
+            val dateRange = globalFilters!!.dateRangeStrings.value
             loadDashboardData(
                 startDate = dateRange.first,
                 endDate = dateRange.second,
-                propertyIds = globalFilters.getPropertyFilter(),
-                platform = globalFilters.getPlatformFilter()
+                propertyIds = globalFilters!!.getPropertyFilter(),
+                platform = globalFilters!!.getPlatformFilter()
             )
         } else {
+            // Default to current year
             loadDashboardData(
                 startDate = DateRangeCalculator.toIsoString(LocalDate.now().withDayOfYear(1)),
                 endDate = DateRangeCalculator.toIsoString(LocalDate.now().withMonth(12).withDayOfMonth(31)),
@@ -209,12 +230,9 @@ class DashboardViewModel(
     }
 }
 
-data class PaymentStatusCounts(
-    val paid: Int,
-    val pending: Int,
-    val overdue: Int
-)
-
+/**
+ * All KPIs displayed on the dashboard.
+ */
 data class DashboardKpis(
     val totalRevenue: Double,
     val netRevenue: Double,
@@ -224,8 +242,7 @@ data class DashboardKpis(
     val occupancyRate: Double,
     val activeProperties: Int,
     val totalReservations: Int,
-    val revenueByPlatform: Map<String, Double>,
-    val paymentStatusCounts: PaymentStatusCounts
+    val revenueByPlatform: Map<String, Double>
 )
 
 sealed class DashboardUiState {
