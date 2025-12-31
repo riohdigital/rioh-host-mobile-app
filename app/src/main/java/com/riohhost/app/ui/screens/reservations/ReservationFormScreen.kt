@@ -1,9 +1,7 @@
 package com.riohhost.app.ui.screens.reservations
 
-import android.app.DatePickerDialog
-import androidx.compose.foundation.clickable
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,25 +9,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,200 +33,187 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.riohhost.app.data.models.CleaningPaymentStatus
 import com.riohhost.app.data.models.PaymentStatus
 import com.riohhost.app.data.models.Platform
-import com.riohhost.app.data.models.Property
+import com.riohhost.app.data.models.ReservationFormData
 import com.riohhost.app.data.models.ReservationStatus
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import com.riohhost.app.utils.DateUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationFormScreen(
     reservationId: String? = null,
-    onNavigateBack: () -> Unit,
-    viewModel: ReservationFormViewModel = viewModel()
+    viewModel: ReservationFormViewModel = viewModel(),
+    onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val formState by viewModel.formState.collectAsState()
-    val properties by viewModel.properties.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val isEditMode = reservationId != null
+    val existingReservation by viewModel.existingReservation.collectAsState()
+    val context = LocalContext.current
 
+    val isEdit = reservationId != null
+
+    // Form State
+    var reservationCode by remember { mutableStateOf("") }
+    var guestName by remember { mutableStateOf("") }
+    var checkInDate by remember { mutableStateOf("") }
+    var checkOutDate by remember { mutableStateOf("") }
+    var totalRevenue by remember { mutableStateOf("") }
+    
+    // Dropdowns
+    var selectedPlatform by remember { mutableStateOf(Platform.AIRBNB.value) }
+    var selectedStatus by remember { mutableStateOf(ReservationStatus.CONFIRMADA.value) }
+
+    // Init Logic
     LaunchedEffect(reservationId) {
         if (reservationId != null) {
             viewModel.loadReservation(reservationId)
         }
-        viewModel.loadProperties()
+    }
+
+    LaunchedEffect(existingReservation) {
+        existingReservation?.let { r ->
+            reservationCode = r.reservationCode ?: ""
+            guestName = r.guestName ?: ""
+            checkInDate = r.checkInDate ?: ""
+            checkOutDate = r.checkOutDate ?: ""
+            totalRevenue = r.totalRevenue?.toString() ?: ""
+            selectedPlatform = r.platform ?: Platform.AIRBNB.value
+            selectedStatus = r.reservationStatus ?: ReservationStatus.CONFIRMADA.value
+        }
     }
 
     LaunchedEffect(uiState) {
-        when (uiState) {
-            is ReservationFormUiState.Success -> {
-                snackbarHostState.showSnackbar(
-                    if (isEditMode) "Reserva atualizada!" else "Reserva criada!"
-                )
-                onNavigateBack()
-            }
-            is ReservationFormUiState.Error -> {
-                snackbarHostState.showSnackbar((uiState as ReservationFormUiState.Error).message)
-            }
-            else -> {}
+        if (uiState is FormUiState.Success) {
+            Toast.makeText(context, "Reserva salva com sucesso!", Toast.LENGTH_SHORT).show()
+            onNavigateBack()
+        }
+        if (uiState is FormUiState.Error) {
+            Toast.makeText(context, (uiState as FormUiState.Error).message, Toast.LENGTH_LONG).show()
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditMode) "Editar Reserva" else "Nova Reserva") },
+                title = { Text(if (isEdit) "Editar Reserva" else "Nova Reserva") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+                        Icon(Icons.Default.ArrowBack, "Voltar")
                     }
                 }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { padding ->
-        when (uiState) {
-            is ReservationFormUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+        if (uiState is FormUiState.Loading) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding), 
+                verticalArrangement = Arrangement.Center, 
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator()
             }
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Property Dropdown
-                    DropdownField(
-                        label = "Propriedade *",
-                        value = properties.find { it.id == formState.propertyId }?.nickname ?: properties.find { it.id == formState.propertyId }?.name ?: "Selecione",
-                        options = properties.map { it.id to (it.nickname ?: it.name) },
-                        onSelect = { viewModel.updatePropertyId(it) }
-                    )
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    Text("Informações Principais", style = MaterialTheme.typography.titleMedium)
+                }
 
-                    // Platform Dropdown
-                    DropdownField(
-                        label = "Plataforma *",
-                        value = formState.platform,
-                        options = Platform.entries.map { it.displayName to it.displayName },
-                        onSelect = { viewModel.updatePlatform(it) }
-                    )
-
-                    // Reservation Code
+                item {
                     OutlinedTextField(
-                        value = formState.reservationCode,
-                        onValueChange = { viewModel.updateReservationCode(it) },
-                        label = { Text("Código da Reserva *") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        value = reservationCode,
+                        onValueChange = { reservationCode = it },
+                        label = { Text("Código da Reserva") },
+                        modifier = Modifier.fillMaxWidth()
                     )
+                }
 
-                    // Dates Row
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        DateField(
-                            label = "Check-in *",
-                            value = formState.checkInDate,
-                            onValueChange = { viewModel.updateCheckInDate(it) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        DateField(
-                            label = "Check-out *",
-                            value = formState.checkOutDate,
-                            onValueChange = { viewModel.updateCheckOutDate(it) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // Guest Name
+                item {
                     OutlinedTextField(
-                        value = formState.guestName,
-                        onValueChange = { viewModel.updateGuestName(it) },
+                        value = guestName,
+                        onValueChange = { guestName = it },
                         label = { Text("Nome do Hóspede") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        modifier = Modifier.fillMaxWidth()
                     )
-
-                    // Guest Phone & Email Row
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                }
+                
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            value = formState.guestPhone,
-                            onValueChange = { viewModel.updateGuestPhone(it) },
-                            label = { Text("Telefone") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                            value = checkInDate,
+                            onValueChange = { checkInDate = it }, // TODO: Add DatePicker
+                            label = { Text("Check-in (yyyy-MM-dd)") },
+                            modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
-                            value = formState.numberOfGuests,
-                            onValueChange = { viewModel.updateNumberOfGuests(it) },
-                            label = { Text("Hóspedes") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            value = checkOutDate,
+                            onValueChange = { checkOutDate = it }, // TODO: Add DatePicker
+                            label = { Text("Check-out (yyyy-MM-dd)") },
+                            modifier = Modifier.weight(1f)
                         )
                     }
+                }
 
-                    // Total Revenue
+                // Platform Selection
+                item {
+                    SimpleDropdown(
+                        label = "Plataforma",
+                        options = Platform.values().map { it.value },
+                        selected = selectedPlatform,
+                        onOptionSelected = { selectedPlatform = it }
+                    )
+                }
+
+                item {
                     OutlinedTextField(
-                        value = formState.totalRevenue,
-                        onValueChange = { viewModel.updateTotalRevenue(it) },
-                        label = { Text("Valor Total (R$) *") },
+                        value = totalRevenue,
+                        onValueChange = { totalRevenue = it },
+                        label = { Text("Valor Total (R$)") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
+                }
 
-                    // Status Dropdowns
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            DropdownField(
-                                label = "Status *",
-                                value = formState.reservationStatus,
-                                options = ReservationStatus.entries.map { it.displayName to it.displayName },
-                                onSelect = { viewModel.updateReservationStatus(it) }
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            DropdownField(
-                                label = "Pagamento",
-                                value = formState.paymentStatus,
-                                options = PaymentStatus.entries.map { it.displayName to it.displayName },
-                                onSelect = { viewModel.updatePaymentStatus(it) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Save Button
+                item {
+                     SimpleDropdown(
+                        label = "Status",
+                        options = ReservationStatus.values().map { it.value },
+                        selected = selectedStatus,
+                        onOptionSelected = { selectedStatus = it }
+                    )
+                }
+                
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {
-                            if (isEditMode && reservationId != null) {
-                                viewModel.updateReservation(reservationId)
-                            } else {
-                                viewModel.createReservation()
-                            }
+                            val data = ReservationFormData(
+                                platform = selectedPlatform,
+                                reservation_code = reservationCode,
+                                check_in_date = checkInDate,
+                                check_out_date = checkOutDate,
+                                total_revenue = totalRevenue,
+                                reservation_status = selectedStatus,
+                                guest_name = guestName
+                                // Add other fields as needed
+                            )
+                            viewModel.submitForm(isEdit, reservationId, data)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = formState.isValid && uiState !is ReservationFormUiState.Saving
+                        enabled = reservationCode.isNotBlank() && checkInDate.isNotBlank()
                     ) {
-                        if (uiState is ReservationFormUiState.Saving) {
-                            CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
-                        }
-                        Text(if (isEditMode) "Salvar Alterações" else "Criar Reserva")
+                        Text("Salvar Reserva")
                     }
                 }
             }
@@ -240,76 +221,44 @@ fun ReservationFormScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropdownField(
+fun SimpleDropdown(
     label: String,
-    value: String,
-    options: List<Pair<String, String>>,
-    onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier
+    options: List<String>,
+    selected: String,
+    onOptionSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    
-    Box(modifier = modifier) {
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
         OutlinedTextField(
-            value = value,
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            readOnly = true,
+            value = selected,
             onValueChange = {},
             label = { Text(label) },
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true },
-            readOnly = true,
-            trailingIcon = {
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.clickable { expanded = true })
-            }
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { (key, display) ->
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { selectionOption ->
                 DropdownMenuItem(
-                    text = { Text(display) },
+                    text = { Text(selectionOption) },
                     onClick = {
-                        onSelect(key)
+                        onOptionSelected(selectionOption)
                         expanded = false
-                    }
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                 )
             }
         }
     }
-}
-
-@Composable
-fun DateField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    
-    val date = try {
-        if (value.isNotEmpty()) LocalDate.parse(value, formatter) else LocalDate.now()
-    } catch (e: Exception) {
-        LocalDate.now()
-    }
-    
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, day ->
-            val selectedDate = LocalDate.of(year, month + 1, day)
-            onValueChange(selectedDate.format(formatter))
-        },
-        date.year,
-        date.monthValue - 1,
-        date.dayOfMonth
-    )
-    
-    OutlinedTextField(
-        value = value,
-        onValueChange = {},
-        label = { Text(label) },
-        modifier = modifier.clickable { datePickerDialog.show() },
-        readOnly = true,
-        trailingIcon = {
-            Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.clickable { datePickerDialog.show() })
-        }
-    )
 }
