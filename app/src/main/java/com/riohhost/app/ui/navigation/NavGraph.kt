@@ -39,6 +39,16 @@ sealed class Screen(val route: String) {
     object PropertyDetail : Screen("property_detail/{propertyId}") {
         fun createRoute(propertyId: String) = "property_detail/$propertyId"
     }
+    object ReservationForm : Screen("reservation_form")
+    object ReservationEdit : Screen("reservation_form/{reservationId}") {
+        fun createRoute(reservationId: String) = "reservation_form/$reservationId"
+    }
+
+    object PropertyForm : Screen("property_form")
+    object PropertyEdit : Screen("property_form/{propertyId}") {
+        fun createRoute(propertyId: String) = "property_form/$propertyId"
+    }
+
     object Chat : Screen("chat")
     object Users : Screen("users")
     object Alerts : Screen("alerts")
@@ -63,7 +73,7 @@ fun NavGraph() {
     
     val showBottomBar = currentRoute in mainScreens
     
-    // Show filter bar only on Dashboard, Reservations, and Calendar
+    // Show filter bar only on Dashboard, Reservations, and Calendar, but NOT on Forms/Chat
     val showFilterBar = currentRoute in listOf(
         Screen.Dashboard.route,
         Screen.Reservations.route,
@@ -118,7 +128,10 @@ fun NavGraph() {
                 )
             }
             composable(Screen.Dashboard.route) {
-                DashboardScreen(globalFiltersViewModel = globalFiltersViewModel)
+                DashboardScreen(
+                    globalFiltersViewModel = globalFiltersViewModel,
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) }
+                )
             }
             composable(Screen.Cleaner.route) {
                 CleanerDashboardScreen()
@@ -128,7 +141,22 @@ fun NavGraph() {
                     globalFiltersViewModel = globalFiltersViewModel,
                     onReservationClick = { reservationId ->
                         navController.navigate(Screen.ReservationDetail.createRoute(reservationId))
-                    }
+                    },
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateToNewReservation = { navController.navigate(Screen.ReservationForm.route) },
+                    onNavigateToNewProperty = { navController.navigate(Screen.PropertyForm.route) }
+                )
+            }
+            composable(Screen.ReservationForm.route) {
+                 com.riohhost.app.ui.screens.reservations.ReservationFormScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.ReservationEdit.route) { backStackEntry ->
+                val reservationId = backStackEntry.arguments?.getString("reservationId")
+                com.riohhost.app.ui.screens.reservations.ReservationFormScreen(
+                    reservationId = reservationId,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Calendar.route) {
@@ -144,7 +172,10 @@ fun NavGraph() {
                 val reservationId = backStackEntry.arguments?.getString("reservationId")
                 com.riohhost.app.ui.screens.reservations.ReservationDetailScreen(
                     reservationId = reservationId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onEditClick = { id -> 
+                        navController.navigate(Screen.ReservationEdit.createRoute(id))
+                    }
                 )
             }
             composable(Screen.Properties.route) {
@@ -154,11 +185,26 @@ fun NavGraph() {
                     }
                 )
             }
+            composable(Screen.PropertyForm.route) {
+                com.riohhost.app.ui.screens.properties.PropertyFormScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.PropertyEdit.route) { backStackEntry ->
+                val propertyId = backStackEntry.arguments?.getString("propertyId")
+                com.riohhost.app.ui.screens.properties.PropertyFormScreen(
+                    propertyId = propertyId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.PropertyDetail.route) { backStackEntry ->
                 val propertyId = backStackEntry.arguments?.getString("propertyId")
                 com.riohhost.app.ui.screens.properties.PropertyDetailScreen(
                     propertyId = propertyId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onEditClick = { id -> 
+                        navController.navigate(Screen.PropertyEdit.createRoute(id))
+                    }
                 )
             }
             composable(Screen.Users.route) {

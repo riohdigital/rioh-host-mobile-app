@@ -32,7 +32,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 fun ReservationDetailScreen(
     reservationId: String?,
     viewModel: com.riohhost.app.ui.screens.reservations.ReservationDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onEditClick: (String) -> Unit
 ) {
     val reservation by viewModel.reservation.collectAsState()
     
@@ -52,7 +53,7 @@ fun ReservationDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Edit reservation */ }) {
+                    IconButton(onClick = { reservationId?.let { onEditClick(it) } }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")
                     }
                 }

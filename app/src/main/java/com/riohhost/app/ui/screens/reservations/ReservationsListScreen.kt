@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,7 +60,10 @@ import com.riohhost.app.utils.DateUtils
 fun ReservationsListScreen(
     globalFiltersViewModel: com.riohhost.app.ui.GlobalFiltersViewModel,
     viewModel: ReservationViewModel = viewModel(),
-    onReservationClick: (String) -> Unit
+    onReservationClick: (String) -> Unit,
+    onNavigateToChat: () -> Unit,
+    onNavigateToNewReservation: () -> Unit,
+    onNavigateToNewProperty: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -75,19 +79,19 @@ fun ReservationsListScreen(
             com.riohhost.app.ui.components.ExpandableFab(
                 items = listOf(
                     com.riohhost.app.ui.components.FabItem(
-                        icon = Icons.Default.Add,
-                        label = "Nova Reserva",
-                        onClick = { /* TODO */ }
-                    ),
-                     com.riohhost.app.ui.components.FabItem(
-                        icon = Icons.Default.Block,
-                        label = "Novo Bloqueio",
-                        onClick = { /* TODO */ }
+                        icon = Icons.Default.Chat,
+                        label = "Chat IA",
+                        onClick = onNavigateToChat
                     ),
                     com.riohhost.app.ui.components.FabItem(
-                        icon = Icons.Default.Chat,
-                        label = "Nova Mensagem",
-                        onClick = { /* TODO */ }
+                        icon = Icons.Default.Add,
+                        label = "Nova Reserva",
+                        onClick = onNavigateToNewReservation
+                    ),
+                     com.riohhost.app.ui.components.FabItem(
+                        icon = Icons.Default.Home, // Using Home icon for Property
+                        label = "Criar Propriedade",
+                        onClick = onNavigateToNewProperty
                     )
                 )
             )

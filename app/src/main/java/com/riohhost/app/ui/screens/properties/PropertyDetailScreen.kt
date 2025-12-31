@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
 fun PropertyDetailScreen(
     propertyId: String?,
     viewModel: PropertyDetailViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onEditClick: (String) -> Unit
 ) {
     val property by viewModel.property.collectAsState()
 
@@ -47,7 +48,7 @@ fun PropertyDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Edit property */ }) {
+                    IconButton(onClick = { propertyId?.let { onEditClick(it) } }) {
                         Icon(Icons.Default.Edit, contentDescription = "Editar")
                     }
                 }

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
@@ -60,8 +61,9 @@ private val CommissionBg = Color(0xFF1E293B)
 
 @Composable
 fun DashboardScreen(
+    viewModel: DashboardViewModel = viewModel(),
     globalFiltersViewModel: com.riohhost.app.ui.GlobalFiltersViewModel,
-    viewModel: DashboardViewModel = viewModel()
+    onNavigateToChat: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -88,12 +90,21 @@ fun DashboardScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            IconButton(onClick = { viewModel.refresh() }) {
-                Icon(
-                    Icons.Default.Refresh, 
-                    contentDescription = "Atualizar",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row {
+                 IconButton(onClick = onNavigateToChat) {
+                    Icon(
+                        Icons.Default.Chat, 
+                        contentDescription = "Chat IA",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(onClick = { viewModel.refresh() }) {
+                    Icon(
+                        Icons.Default.Refresh, 
+                        contentDescription = "Atualizar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
@@ -311,98 +322,98 @@ private fun GradientKPICard(
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color.White.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    
-                    // Title and Value at bottom
-                    Column {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = value,
-                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-            }
-        }
-    }
-
-    @Composable
-    private fun PerformanceCard(
-        title: String,
-        value: String,
-        subtitle: String,
-        icon: ImageVector,
-        iconColor: Color,
-        modifier: Modifier = Modifier
-    ) {
-        Card(
-            modifier = modifier.height(110.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 14.sp,
-                    maxLines = 2
-                )
                 
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-                
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                if (subtitle.isNotBlank()) {
+                // Title and Value at bottom
+                Column {
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = title,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
             }
         }
     }
+}
 
-    @Composable
-    private fun getPlatformColor(platform: String): Color {
-        return when (platform.lowercase()) {
-            "airbnb" -> Color(0xFFFF5A5F)
-            "booking", "booking.com" -> Color(0xFF003580)
-            "vrbo" -> Color(0xFF3D5A80)
-            else -> Color(0xFF22C55E)
+@Composable
+private fun PerformanceCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(110.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 14.sp,
+                maxLines = 2
+            )
+            
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+            
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            if (subtitle.isNotBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun getPlatformColor(platform: String): Color {
+    return when (platform.lowercase()) {
+        "airbnb" -> Color(0xFFFF5A5F)
+        "booking", "booking.com" -> Color(0xFF003580)
+        "vrbo" -> Color(0xFF3D5A80)
+        else -> Color(0xFF22C55E)
+    }
+}
