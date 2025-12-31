@@ -118,13 +118,14 @@ fun NavGraph() {
                 )
             }
             composable(Screen.Dashboard.route) {
-                DashboardScreen()
+                DashboardScreen(globalFiltersViewModel = globalFiltersViewModel)
             }
             composable(Screen.Cleaner.route) {
                 CleanerDashboardScreen()
             }
             composable(Screen.Reservations.route) {
                 ReservationsListScreen(
+                    globalFiltersViewModel = globalFiltersViewModel,
                     onReservationClick = { reservationId ->
                         navController.navigate(Screen.ReservationDetail.createRoute(reservationId))
                     }
