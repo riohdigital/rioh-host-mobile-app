@@ -4,62 +4,82 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.riohhost.app.data.models.Reservation
 import com.riohhost.app.data.repositories.ReservationRepository
-import com.riohhost.app.utils.DateRangeCalculator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 class ReservationViewModel : ViewModel() {
-    private val repository = ReservationRepository()
+    private val reservationRepository = ReservationRepository()
+    
+    var globalFilters: GlobalFiltersViewModel? = null
+        private set
 
     private val _uiState = MutableStateFlow<ReservationsUiState>(ReservationsUiState.Loading)
     val uiState: StateFlow<ReservationsUiState> = _uiState.asStateFlow()
 
     init {
-        // Load with current year as default
-        val today = LocalDate.now()
-        loadReservationsFiltered(
-            startDate = DateRangeCalculator.toIsoString(today.withDayOfYear(1)),
-            endDate = DateRangeCalculator.toIsoString(today.withMonth(12).withDayOfMonth(31)),
-            propertyIds = null,
-            platform = null
-        )
+        loadReservations()
     }
-
-    fun loadReservationsFiltered(
-        startDate: String,
-        endDate: String,
-        propertyIds: List<String>?,
-        platform: String?
-    ) {
-        viewModelScope.launch {
-            try {
-                _uiState.value = ReservationsUiState.Loading
-                android.util.Log.d("ReservationVM", "Loading: $startDate to $endDate, platform: $platform")
-                
-                val reservations = repository.getReservationsFiltered(
-                    startDate = startDate,
-                    endDate = endDate,
-                    propertyIds = propertyIds,
-                    platform = platform
-                )
-                
-                android.util.Log.d("ReservationVM", "Loaded ${reservations.size} reservations")
-                _uiState.value = ReservationsUiState.Success(reservations)
-            } catch (e: Exception) {
-                android.util.Log.e("ReservationVM", "Error: ${e.message}", e)
-                _uiState.value = ReservationsUiState.Error(e.message ?: "Erro ao carregar reservas")
-            }
+    
+    fun setFilters(filters: GlobalFiltersViewModel) {
+        if (globalFilters != filters) {
+            globalFilters = filters
+            observeFilterChanges()
+            // Trigger refresh
+            refresh()
         }
     }
 
-    fun loadReservations() {
+    private fun observeFilterChanges() {
         viewModelScope.launch {
+            globalFilters?.let { filters ->
+                combine(
+                    filters.dateRangeStrings,
+                    filters.selectedProperties,
+                    filters.selectedPlatform
+                ) { dateRange, properties, platform ->
+                    Triple(dateRange, properties, platform)
+                }.collectLatest { (dateRange, properties, platform) ->
+                    loadReservations(
+                        startDate = dateRange.first,
+                        endDate = dateRange.second,
+                        propertyIds = if (properties.contains("todas")) null else properties,
+                        platform = if (platform == "all") null else platform
+                    )
+                }
+            }
+        }
+    }
+    
+    fun refresh() {
+        if (globalFilters != null) {
+            val dateRange = globalFilters!!.dateRangeStrings.value
+            loadReservations(
+                startDate = dateRange.first,
+                endDate = dateRange.second,
+                propertyIds = globalFilters!!.getPropertyFilter(),
+                platform = globalFilters!!.getPlatformFilter()
+            )
+        } else {
+            loadReservations()
+        }
+    }
+
+    private fun loadReservations(
+        startDate: String? = null,
+        endDate: String? = null,
+        propertyIds: List<String>? = null,
+        platform: String? = null
+    ) {
+        viewModelScope.launch {
+            _uiState.value = ReservationsUiState.Loading
             try {
-                _uiState.value = ReservationsUiState.Loading
-                val reservations = repository.getReservations()
+                val reservations = if (startDate != null && endDate != null) {
+                    reservationRepository.getReservationsFiltered(startDate, endDate, propertyIds, platform)
+                } else {
+                    reservationRepository.getReservations()
+                }
                 _uiState.value = ReservationsUiState.Success(reservations)
             } catch (e: Exception) {
                 _uiState.value = ReservationsUiState.Error(e.message ?: "Erro ao carregar reservas")
