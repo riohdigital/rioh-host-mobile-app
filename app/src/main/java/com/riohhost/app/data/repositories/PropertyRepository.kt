@@ -9,17 +9,17 @@ class PropertyRepository {
 
     suspend fun getProperties(): List<Property> {
         return try {
-            android.util.Log.d("PropertyRepo", "Iniciando busca de propriedades...")
+            println("PropertyRepo: Iniciando busca de propriedades...")
             val result = supabase.postgrest.from("properties")
                 .select()
                 .decodeList<Property>()
-            android.util.Log.d("PropertyRepo", "Encontradas ${result.size} propriedades")
+            println("PropertyRepo: Encontradas ${result.size} propriedades")
             if (result.isNotEmpty()) {
-                android.util.Log.d("PropertyRepo", "Primeira propriedade: ${result.first()}")
+                println("PropertyRepo: Primeira propriedade: ${result.first()}")
             }
             result
         } catch (e: Exception) {
-            android.util.Log.e("PropertyRepo", "ERRO ao buscar propriedades: ${e.message}", e)
+            println("PropertyRepo: ERRO ao buscar propriedades: ${e.message}")
             emptyList()
         }
     }
@@ -60,7 +60,7 @@ class PropertyRepository {
                 .decodeSingle<Property>()
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("PropertyRepo", "Erro ao criar propriedade: ${e.message}")
+            println("PropertyRepo: Erro ao criar propriedade: ${e.message}")
             Result.failure(e)
         }
     }
@@ -91,7 +91,7 @@ class PropertyRepository {
                 .decodeSingle<Property>()
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("PropertyRepo", "Erro ao atualizar propriedade: ${e.message}")
+            println("PropertyRepo: Erro ao atualizar propriedade: ${e.message}")
             Result.failure(e)
         }
     }

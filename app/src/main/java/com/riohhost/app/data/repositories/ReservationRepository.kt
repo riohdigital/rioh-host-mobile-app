@@ -10,7 +10,7 @@ class ReservationRepository {
 
     suspend fun getReservations(propertyId: String? = null): List<Reservation> {
         return try {
-            android.util.Log.d("ReservationRepo", "Iniciando busca de reservas...")
+            println("ReservationRepo: Iniciando busca de reservas...")
             val result = supabase.postgrest.from("reservations")
                 .select {
                     if (propertyId != null) {
@@ -18,13 +18,13 @@ class ReservationRepository {
                     }
                 }
                 .decodeList<Reservation>()
-            android.util.Log.d("ReservationRepo", "Encontradas ${result.size} reservas")
+            println("ReservationRepo: Encontradas ${result.size} reservas")
             if (result.isNotEmpty()) {
-                android.util.Log.d("ReservationRepo", "Primeira reserva: ${result.first()}")
+                println("ReservationRepo: Primeira reserva: ${result.first()}")
             }
             result
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao buscar reservas: ${e.message}", e)
+            println("ReservationRepo: ERRO ao buscar reservas: ${e.message}")
             emptyList()
         }
     }
@@ -43,20 +43,15 @@ class ReservationRepository {
         return try {
             android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate, props: $propertyIds, platform: $platform")
             
-            var query = supabase.postgrest.from("reservations").select()
-            
-            // CRITICAL: Overlap logic - captures reservations that overlap with period
-            // check_out >= startDate (reservation ends after period starts)
-            // check_in <= endDate (reservation starts before period ends)
-            query = query.gte("check_out_date", startDate)
-            query = query.lte("check_in_date", endDate)
-            
-            // Platform filter
-            if (!platform.isNullOrEmpty() && platform != "all") {
-                query = query.eq("platform", platform)
-            }
-            
-            val result = query.decodeList<Reservation>()
+            val result = supabase.postgrest.from("reservations").select {
+                filter {
+                    gte("check_out_date", startDate)
+                    lte("check_in_date", endDate)
+                    if (!platform.isNullOrEmpty() && platform != "all") {
+                        eq("platform", platform)
+                    }
+                }
+            }.decodeList<Reservation>()
             
             // Property filter (applied client-side due to API limitations)
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
@@ -129,7 +124,7 @@ class ReservationRepository {
                 .decodeList<com.riohhost.app.data.models.CleanerInfo>()
             Result.success(response)
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "Erro ao buscar faxineiras: ${e.message}")
+            println("ReservationRepo: Erro ao buscar faxineiras: ${e.message}")
             Result.failure(e)
         }
     }
@@ -166,7 +161,7 @@ class ReservationRepository {
                 .decodeSingle<Reservation>()
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "Erro ao criar reserva: ${e.message}")
+            println("ReservationRepo: Erro ao criar reserva: ${e.message}")
             Result.failure(e)
         }
     }
@@ -205,7 +200,7 @@ class ReservationRepository {
                 .decodeSingle<Reservation>()
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "Erro ao atualizar reserva: ${e.message}")
+            println("ReservationRepo: Erro ao atualizar reserva: ${e.message}")
             Result.failure(e)
         }
     }

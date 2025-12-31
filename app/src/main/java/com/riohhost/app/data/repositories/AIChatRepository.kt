@@ -1,6 +1,5 @@
 package com.riohhost.app.data.repositories
 
-import android.util.Log
 import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.ChatMessage
 import com.riohhost.app.data.models.MessageRole
@@ -8,7 +7,6 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -16,10 +14,10 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.datetime.Instant
 
 private const val AI_CHAT_ENDPOINT = "https://n8n-n8n.dgyrua.easypanel.host/webhook/DashBoard%20RiohHost%20ChatAI"
 
@@ -67,7 +65,7 @@ data class ChatMessageContent(
 
 class AIChatRepository {
     private val supabase = SupabaseClient.client
-    private val client = HttpClient(Android) {
+    private val client = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
@@ -100,7 +98,7 @@ class AIChatRepository {
             
             Result.success(aiMessage)
         } catch (e: Exception) {
-            Log.e("AIChatRepo", "Erro ao enviar mensagem: ${e.message}")
+            println("AIChatRepo: Erro ao enviar mensagem: ${e.message}")
             Result.failure(e)
         }
     }
@@ -127,7 +125,7 @@ class AIChatRepository {
             }
             Result.success(messages)
         } catch (e: Exception) {
-            Log.e("AIChatRepo", "Erro ao carregar histórico: ${e.message}")
+            println("AIChatRepo: Erro ao carregar histórico: ${e.message}")
             Result.failure(e)
         }
     }
@@ -151,7 +149,7 @@ class AIChatRepository {
                 .insert(row)
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e("AIChatRepo", "Erro ao salvar mensagem: ${e.message}")
+            println("AIChatRepo: Erro ao salvar mensagem: ${e.message}")
             Result.failure(e)
         }
     }

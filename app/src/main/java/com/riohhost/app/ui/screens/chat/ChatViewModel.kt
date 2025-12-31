@@ -78,6 +78,7 @@ class ChatViewModel : ViewModel() {
                     timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                 )
                 _messages.value = _messages.value + errorMsg
+            }
         }
     }
 }

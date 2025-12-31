@@ -117,3 +117,36 @@ data class NotificationDestination(
     val role: String? = null,
     @SerialName("is_authenticated") val isAuthenticated: Boolean = false
 )
+
+@Serializable
+data class CleanerProfile(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("full_name") val fullName: String? = null,
+    val email: String? = null,
+    val phone: String? = null
+)
+
+@Serializable
+data class CleanerInfo(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("full_name") val fullName: String? = null
+)
+
+@Serializable
+data class CleaningReservation(
+    val id: String,
+    @SerialName("property_id") val propertyId: String?,
+    @SerialName("reservation_code") val reservationCode: String?,
+    @SerialName("guest_name") val guestName: String?,
+    @SerialName("check_in_date") val checkInDate: String?, 
+    @SerialName("check_out_date") val checkOutDate: String?,
+    @SerialName("checkout_time") val checkoutTime: String?,
+    @SerialName("cleaning_status") val cleaningStatus: String?,
+    @SerialName("cleaning_notes") val cleaningNotes: String?,
+    @SerialName("next_check_in_date") val nextCheckInDate: String? = null,
+    @SerialName("next_checkin_time") val nextCheckinTime: String? = null,
+    @SerialName("cleaner_info") val cleanerInfo: CleanerInfo? = null,
+    @SerialName("cleaner_user_id") val cleanerUserId: String? = null
+)
