@@ -148,5 +148,6 @@ data class CleaningReservation(
     @SerialName("next_check_in_date") val nextCheckInDate: String? = null,
     @SerialName("next_checkin_time") val nextCheckinTime: String? = null,
     @SerialName("cleaner_info") val cleanerInfo: CleanerInfo? = null,
-    @SerialName("cleaner_user_id") val cleanerUserId: String? = null
+    @SerialName("cleaner_user_id") val cleanerUserId: String? = null,
+    val properties: Property? = null
 )

@@ -64,7 +64,7 @@ fun CleaningManagementScreen(
     val availableCleanings by viewModel.availableCleanings.collectAsState()
     val cleaners by viewModel.cleaners.collectAsState()
     val stats by viewModel.stats.collectAsState()
-    
+
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Todas", "Pendentes", "Realizadas", "Disponíveis")
 
@@ -213,6 +213,7 @@ private fun CleaningCard(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+     val propertyName = cleaning.properties?.name ?: "Propriedade"
             // Property name and status badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -220,15 +221,15 @@ private fun CleaningCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = cleaning.properties?.name ?: "Propriedade",
+                    text = propertyName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 StatusBadge(status = cleaning.cleaningStatus ?: "Indefinido")
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Dates
             Text(
                 text = "Check-out: ${cleaning.checkOutDate ?: "N/A"} às ${cleaning.checkoutTime ?: "--:--"}",
@@ -241,10 +242,10 @@ private fun CleaningCard(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            
+
             // Cleaner info or assign button
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             if (cleaning.cleanerInfo != null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -252,10 +253,10 @@ private fun CleaningCard(
                 ) {
                     Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = cleaning.cleanerInfo.fullName, style = MaterialTheme.typography.bodyMedium)
+                    Text(text = cleaning.cleanerInfo.fullName ?: "Desconhecido", style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            
+
             // Action buttons
             Spacer(modifier = Modifier.height(12.dp))
             Row(
@@ -279,7 +280,7 @@ private fun CleaningCard(
                         ) {
                             cleaners.forEach { cleaner ->
                                 DropdownMenuItem(
-                                    text = { Text(cleaner.fullName) },
+                                    text = { Text(cleaner.fullName ?: "Desconhecido") },
                                     onClick = {
                                         onAssign(cleaner.userId)
                                         showCleanerDropdown = false
@@ -300,7 +301,7 @@ private fun CleaningCard(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(if (isCompleted) "Marcar Pendente" else "Marcar Realizada")
                     }
-                    
+
                     // Unassign button
                     Button(
                         onClick = onUnassign,
@@ -321,7 +322,7 @@ private fun StatusBadge(status: String) {
         "pendente" -> Color(0xFFFFA726) to Color.White
         else -> Color.Gray to Color.White
     }
-    
+
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))

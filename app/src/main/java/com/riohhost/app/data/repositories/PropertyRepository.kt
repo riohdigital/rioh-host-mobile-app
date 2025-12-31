@@ -3,7 +3,6 @@ package com.riohhost.app.data.repositories
 import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.Property
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Order
 
 class PropertyRepository {
     private val supabase = SupabaseClient.client
