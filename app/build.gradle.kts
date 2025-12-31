@@ -71,6 +71,10 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
 
+    // Biometrics & Security
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // Ktor 3.0.0 - matching Supabase BOM
     implementation("io.ktor:ktor-client-okhttp:3.0.0")
 
