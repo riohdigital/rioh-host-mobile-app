@@ -2,8 +2,6 @@ package com.riohhost.app.data.repositories
 
 import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.Reservation
-import com.riohhost.app.data.models.ReservationCreate
-import com.riohhost.app.data.models.ReservationUpdate
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 
@@ -21,6 +19,9 @@ class ReservationRepository {
                 }
                 .decodeList<Reservation>()
             android.util.Log.d("ReservationRepo", "Encontradas ${result.size} reservas")
+            if (result.isNotEmpty()) {
+                android.util.Log.d("ReservationRepo", "Primeira reserva: ${result.first()}")
+            }
             result
         } catch (e: Exception) {
             android.util.Log.e("ReservationRepo", "ERRO ao buscar reservas: ${e.message}", e)
@@ -31,6 +32,7 @@ class ReservationRepository {
     /**
      * Get reservations filtered by date range, properties, and platform.
      * Uses overlap logic: check_out >= startDate AND check_in <= endDate
+     * This captures all reservations that overlap with the period.
      */
     suspend fun getReservationsFiltered(
         startDate: String,
@@ -39,21 +41,24 @@ class ReservationRepository {
         platform: String? = null
     ): List<Reservation> {
         return try {
-            android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate")
+            android.util.Log.d("ReservationRepo", "Buscando reservas: $startDate a $endDate, props: $propertyIds, platform: $platform")
             
-            val result = supabase.postgrest.from("reservations")
-                .select {
-                    filter {
-                        gte("check_out_date", startDate)
-                        lte("check_in_date", endDate)
-                        if (!platform.isNullOrEmpty() && platform != "all") {
-                            eq("platform", platform)
-                        }
-                    }
-                }
-                .decodeList<Reservation>()
+            var query = supabase.postgrest.from("reservations").select()
             
-            // Property filter (applied client-side)
+            // CRITICAL: Overlap logic - captures reservations that overlap with period
+            // check_out >= startDate (reservation ends after period starts)
+            // check_in <= endDate (reservation starts before period ends)
+            query = query.gte("check_out_date", startDate)
+            query = query.lte("check_in_date", endDate)
+            
+            // Platform filter
+            if (!platform.isNullOrEmpty() && platform != "all") {
+                query = query.eq("platform", platform)
+            }
+            
+            val result = query.decodeList<Reservation>()
+            
+            // Property filter (applied client-side due to API limitations)
             val filteredResult = if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                 result.filter { reservation -> 
                     reservation.propertyId?.let { propertyIds.contains(it) } ?: false
@@ -73,54 +78,12 @@ class ReservationRepository {
     suspend fun getReservationById(id: String): Reservation? {
         return try {
             supabase.postgrest.from("reservations")
-                .select { filter { eq("id", id) } }
-                .decodeSingle<Reservation>()
-        } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao buscar reserva por ID: ${e.message}", e)
-            null
-        }
-    }
-
-    suspend fun createReservation(reservation: ReservationCreate): Result<Reservation> {
-        return try {
-            android.util.Log.d("ReservationRepo", "Criando reserva: ${reservation.reservationCode}")
-            val result = supabase.postgrest.from("reservations")
-                .insert(reservation)
-                .decodeSingle<Reservation>()
-            android.util.Log.d("ReservationRepo", "Reserva criada: ${result.id}")
-            Result.success(result)
-        } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao criar reserva: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun updateReservation(id: String, updates: ReservationUpdate): Result<Reservation> {
-        return try {
-            android.util.Log.d("ReservationRepo", "Atualizando reserva: $id")
-            val result = supabase.postgrest.from("reservations")
-                .update(updates) {
+                .select {
                     filter { eq("id", id) }
                 }
                 .decodeSingle<Reservation>()
-            android.util.Log.d("ReservationRepo", "Reserva atualizada: ${result.id}")
-            Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao atualizar reserva: ${e.message}", e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun deleteReservation(id: String): Result<Unit> {
-        return try {
-            android.util.Log.d("ReservationRepo", "Deletando reserva: $id")
-            supabase.postgrest.from("reservations")
-                .delete { filter { eq("id", id) } }
-            android.util.Log.d("ReservationRepo", "Reserva deletada: $id")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao deletar reserva: ${e.message}", e)
-            Result.failure(e)
+            null
         }
     }
 
@@ -147,7 +110,7 @@ class ReservationRepository {
             supabase.postgrest.rpc("assign_cleaning_with_permissions", 
                 mapOf("reservation_id" to reservationId, "cleaner_id" to cleanerId))
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao atribuir faxina: ${e.message}", e)
+            // Handle error or rethrow
         }
     }
 
@@ -155,7 +118,115 @@ class ReservationRepository {
         try {
             supabase.postgrest.rpc("fn_toggle_cleaning_status", mapOf("reservation_id" to reservationId))
         } catch (e: Exception) {
-            android.util.Log.e("ReservationRepo", "ERRO ao alterar status: ${e.message}", e)
+            // Handle error or rethrow
+        }
+    }
+
+    suspend fun getCleanersForProperty(propertyId: String): Result<List<com.riohhost.app.data.models.CleanerInfo>> {
+        return try {
+            val response = supabase.postgrest
+                .rpc("fn_get_property_cleaners_for_user", mapOf("p_property_id" to propertyId))
+                .decodeList<com.riohhost.app.data.models.CleanerInfo>()
+            Result.success(response)
+        } catch (e: Exception) {
+            android.util.Log.e("ReservationRepo", "Erro ao buscar faxineiras: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createReservation(data: com.riohhost.app.data.models.ReservationFormData): Result<Reservation> {
+        val (cleanerId, cleaningAllocation) = processCleaningDestination(data.cleaning_destination)
+        
+        val submissionData = mapOf(
+            "property_id" to data.property_id,
+            "platform" to data.platform,
+            "reservation_code" to data.reservation_code,
+            "guest_name" to data.guest_name,
+            "guest_email" to data.guest_email,
+            "guest_phone" to data.guest_phone,
+            "number_of_guests" to data.number_of_guests,
+            "check_in_date" to data.check_in_date,
+            "check_out_date" to data.check_out_date,
+            "checkin_time" to data.checkin_time,
+            "checkout_time" to data.checkout_time,
+            "total_revenue" to data.total_revenue.toBigDecimalOrNull(),
+            "payment_status" to data.payment_status,
+            "reservation_status" to data.reservation_status,
+            "cleaner_user_id" to cleanerId,
+            "cleaning_allocation" to cleaningAllocation,
+            "cleaning_payment_status" to data.cleaning_payment_status,
+            "cleaning_rating" to data.cleaning_rating,
+            "cleaning_notes" to data.cleaning_notes,
+            "cleaning_fee" to data.cleaning_fee?.toBigDecimalOrNull()
+        )
+        
+        return try {
+            val result = supabase.postgrest.from("reservations")
+                .insert(submissionData)
+                .decodeSingle<Reservation>()
+            Result.success(result)
+        } catch (e: Exception) {
+            android.util.Log.e("ReservationRepo", "Erro ao criar reserva: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateReservation(id: String, data: com.riohhost.app.data.models.ReservationFormData): Result<Reservation> {
+        val (cleanerId, cleaningAllocation) = processCleaningDestination(data.cleaning_destination)
+
+        val submissionData = mapOf(
+            "property_id" to data.property_id,
+            "platform" to data.platform,
+            "reservation_code" to data.reservation_code,
+            "guest_name" to data.guest_name,
+            "guest_email" to data.guest_email,
+            "guest_phone" to data.guest_phone,
+            "number_of_guests" to data.number_of_guests,
+            "check_in_date" to data.check_in_date,
+            "check_out_date" to data.check_out_date,
+            "checkin_time" to data.checkin_time,
+            "checkout_time" to data.checkout_time,
+            "total_revenue" to data.total_revenue.toBigDecimalOrNull(),
+            "payment_status" to data.payment_status,
+            "reservation_status" to data.reservation_status,
+            "cleaner_user_id" to cleanerId,
+            "cleaning_allocation" to cleaningAllocation,
+            "cleaning_payment_status" to data.cleaning_payment_status,
+            "cleaning_rating" to data.cleaning_rating,
+            "cleaning_notes" to data.cleaning_notes,
+            "cleaning_fee" to data.cleaning_fee?.toBigDecimalOrNull()
+        )
+
+        return try {
+            val result = supabase.postgrest.from("reservations")
+                .update(submissionData) {
+                    eq("id", id)
+                }
+                .decodeSingle<Reservation>()
+            Result.success(result)
+        } catch (e: Exception) {
+            android.util.Log.e("ReservationRepo", "Erro ao atualizar reserva: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    private fun processCleaningDestination(destination: String?): Pair<String?, String?> {
+        val uuidRegex = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$".toRegex(RegexOption.IGNORE_CASE)
+        
+        return when {
+            destination?.matches(uuidRegex) == true -> {
+                // É um UUID de faxineira
+                Pair(destination, null)  // cleaner_user_id, cleaning_allocation
+            }
+            destination == "host" -> {
+                Pair(null, "co_anfitriao")
+            }
+            destination == "owner" -> {
+                Pair(null, "proprietario")
+            }
+            else -> {
+                Pair(null, null)  // Nenhum
+            }
         }
     }
 }
