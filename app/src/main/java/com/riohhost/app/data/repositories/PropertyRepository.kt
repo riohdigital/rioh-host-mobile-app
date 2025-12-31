@@ -3,6 +3,7 @@ package com.riohhost.app.data.repositories
 import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.Property
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Order
 
 class PropertyRepository {
     private val supabase = SupabaseClient.client
@@ -86,7 +87,9 @@ class PropertyRepository {
         return try {
             val result = supabase.postgrest.from("properties")
                 .update(submissionData) {
-                    eq("id", id)
+                    filter {
+                        eq("id", id)
+                    }
                 }
                 .decodeSingle<Property>()
             Result.success(result)

@@ -124,6 +124,7 @@ class ReservationRepository {
                 .decodeList<com.riohhost.app.data.models.CleanerInfo>()
             Result.success(response)
         } catch (e: Exception) {
+        } catch (e: Exception) {
             println("ReservationRepo: Erro ao buscar faxineiras: ${e.message}")
             Result.failure(e)
         }
@@ -161,6 +162,7 @@ class ReservationRepository {
                 .decodeSingle<Reservation>()
             Result.success(result)
         } catch (e: Exception) {
+        } catch (e: Exception) {
             println("ReservationRepo: Erro ao criar reserva: ${e.message}")
             Result.failure(e)
         }
@@ -195,10 +197,13 @@ class ReservationRepository {
         return try {
             val result = supabase.postgrest.from("reservations")
                 .update(submissionData) {
-                    eq("id", id)
+                    filter {
+                        eq("id", id)
+                    }
                 }
                 .decodeSingle<Reservation>()
             Result.success(result)
+        } catch (e: Exception) {
         } catch (e: Exception) {
             println("ReservationRepo: Erro ao atualizar reserva: ${e.message}")
             Result.failure(e)
