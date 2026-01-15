@@ -151,3 +151,12 @@ data class CleaningReservation(
     @SerialName("cleaner_user_id") val cleanerUserId: String? = null,
     val properties: Property? = null
 )
+
+@Serializable
+data class PropertyCleaner(
+    @SerialName("user_id") val userId: String,
+    @SerialName("full_name") val fullName: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val pix: String? = null
+)

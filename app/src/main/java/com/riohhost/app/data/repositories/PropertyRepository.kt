@@ -97,4 +97,52 @@ class PropertyRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun getPropertyCleaners(propertyId: String): List<com.riohhost.app.data.models.PropertyCleaner> {
+        return try {
+             // 1. Get cleaner IDs for property
+             val cleanersResult = supabase.postgrest.from("cleaner_properties")
+                 .select(columns = io.github.jan.supabase.postgrest.query.Columns.list("user_id")) {
+                     filter { eq("property_id", propertyId) }
+                 }
+                 .decodeList<Map<String, String>>()
+             
+             val userIds = cleanersResult.mapNotNull { it["user_id"] }
+             
+             if (userIds.isEmpty()) return emptyList()
+             
+             // 2. Fetch profiles
+             val profiles = supabase.postgrest.from("user_profiles")
+                 .select {
+                     filter { isIn("user_id", userIds) }
+                 }
+                 .decodeList<com.riohhost.app.data.models.UserProfile>()
+             
+             // 3. Fetch cleaner specific details (phone)
+             val cleanerDetails = try {
+                 supabase.postgrest.from("cleaner_profiles")
+                     .select {
+                         filter { isIn("user_id", userIds) }
+                     }
+                     .decodeList<com.riohhost.app.data.models.CleanerProfile>()
+             } catch (e: Exception) {
+                 emptyList()
+             }
+             
+             // 4. Merge
+             return profiles.map { profile ->
+                 val details = cleanerDetails.find { it.userId == profile.userId }
+                 com.riohhost.app.data.models.PropertyCleaner(
+                     userId = profile.userId,
+                     fullName = profile.fullName,
+                     email = profile.email,
+                     phone = details?.phone,
+                     pix = null
+                 )
+             }
+        } catch (e: Exception) {
+            println("PropertyRepo: Erro ao buscar faxineiras vinculadas: ${e.message}")
+            emptyList()
+        }
+    }
 }

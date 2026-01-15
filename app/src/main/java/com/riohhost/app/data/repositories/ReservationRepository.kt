@@ -207,6 +207,44 @@ class ReservationRepository {
         }
     }
 
+    suspend fun getNextReservations(propertyId: String, limit: Int = 5): List<Reservation> {
+        return try {
+            val today = java.time.LocalDate.now().toString()
+            supabase.postgrest.from("reservations")
+                .select {
+                    filter {
+                        eq("property_id", propertyId)
+                        gte("check_in_date", today)
+                        eq("reservation_status", "Confirmada")
+                    }
+                    order("check_in_date", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                    limit(limit.toLong())
+                }
+                .decodeList<Reservation>()
+        } catch (e: Exception) {
+            println("ReservationRepo: Erro ao buscar proximas reservas: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun getReservationsForStats(propertyId: String, startDate: String, endDate: String): List<Reservation> {
+        return try {
+            supabase.postgrest.from("reservations")
+                .select {
+                    filter {
+                        eq("property_id", propertyId)
+                        gte("check_in_date", startDate)
+                        lte("check_out_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                    }
+                }
+                .decodeList<Reservation>()
+        } catch (e: Exception) {
+             println("ReservationRepo: Erro ao buscar reservas para stats: ${e.message}")
+            emptyList()
+        }
+    }
+
     private fun processCleaningDestination(destination: String?): Pair<String?, String?> {
         val uuidRegex = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$".toRegex(RegexOption.IGNORE_CASE)
         
