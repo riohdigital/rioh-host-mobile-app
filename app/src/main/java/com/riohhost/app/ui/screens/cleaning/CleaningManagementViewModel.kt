@@ -2,115 +2,200 @@ package com.riohhost.app.ui.screens.cleaning
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.riohhost.app.data.models.CleanerProfile
-import com.riohhost.app.data.models.CleaningReservation
+import com.riohhost.app.data.models.CleanerStats
+import com.riohhost.app.data.models.ReservationWithCleanerInfo
 import com.riohhost.app.data.repositories.CleaningRepository
+import com.riohhost.app.ui.screens.cleaning.models.CleaningTab
+import com.riohhost.app.ui.screens.cleaning.models.CleaningUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
-class CleaningManagementViewModel : ViewModel() {
-    private val cleaningRepository = CleaningRepository()
+class CleaningManagementViewModel(
+    private val repository: CleaningRepository = CleaningRepository()
+) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<CleaningUiState>(CleaningUiState.Loading)
+    private val _uiState = MutableStateFlow(CleaningUiState())
     val uiState: StateFlow<CleaningUiState> = _uiState.asStateFlow()
-
-    private val _allCleanings = MutableStateFlow<List<CleaningReservation>>(emptyList())
-    val allCleanings: StateFlow<List<CleaningReservation>> = _allCleanings.asStateFlow()
-
-    private val _availableCleanings = MutableStateFlow<List<CleaningReservation>>(emptyList())
-    val availableCleanings: StateFlow<List<CleaningReservation>> = _availableCleanings.asStateFlow()
-
-    private val _cleaners = MutableStateFlow<List<CleanerProfile>>(emptyList())
-    val cleaners: StateFlow<List<CleanerProfile>> = _cleaners.asStateFlow()
-
-    private val _stats = MutableStateFlow(CleaningStats())
-    val stats: StateFlow<CleaningStats> = _stats.asStateFlow()
 
     init {
         loadData()
+        checkPermissions()
     }
 
-    fun loadData(startDate: String? = null, endDate: String? = null) {
+    fun loadData() {
         viewModelScope.launch {
-            _uiState.value = CleaningUiState.Loading
-            
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                // Load all assigned cleanings
-                val allResult = cleaningRepository.getAllCleanerReservations(startDate, endDate)
-                val all = allResult.getOrDefault(emptyList())
-                _allCleanings.value = all
-                
-                // Load available cleanings
-                val availableResult = cleaningRepository.getAvailableReservations(startDate, endDate)
-                val available = availableResult.getOrDefault(emptyList())
-                _availableCleanings.value = available
-                
-                // Load cleaners
-                val cleanersResult = cleaningRepository.getCleanersForProperties()
-                _cleaners.value = cleanersResult.getOrDefault(emptyList())
-                
-                // Calculate stats
-                _stats.value = CleaningStats(
-                    totalCleanings = all.size,
-                    pendingCleanings = all.count { it.cleaningStatus?.equals("Pendente", ignoreCase = true) == true },
-                    completedCleanings = all.count { it.cleaningStatus?.equals("Realizada", ignoreCase = true) == true },
-                    availableCleanings = available.size
-                )
-                
-                _uiState.value = CleaningUiState.Success
+                // Fetch for current month + next month for context, or a wider range
+                // For now, let's hardcode a reasonable range or calculate it dynamically
+                val today = LocalDate.now()
+                val startDate = today.minusDays(7).toString() // 1 week back
+                val endDate = today.plusMonths(2).toString()  // 2 months forward
+
+                // Parallel fetch
+                val assignedDeferred =  repository.getAllCleanerReservations(startDate, endDate, null)
+                val availableDeferred = repository.getAllAvailableReservations(startDate, endDate, null)
+                val cleanersDeferred = repository.getCleanersForProperties(null)
+
+                val assigned = assignedDeferred
+                val available = availableDeferred
+                val cleaners = cleanersDeferred
+
+                val stats = calculateCleanerStats(assigned)
+
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        allCleanings = assigned,
+                        availableCleanings = available,
+                        cleaners = cleaners,
+                        cleanerStats = stats
+                    )
+                }
+                applyFilters() // Apply initial filters to set displayedCleanings
             } catch (e: Exception) {
-                android.util.Log.e("CleaningVM", "Erro ao carregar dados: ${e.message}", e)
-                _uiState.value = CleaningUiState.Error(e.message ?: "Erro ao carregar dados")
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
 
-    fun assignCleaning(reservationId: String, cleanerId: String) {
+    private fun checkPermissions() {
         viewModelScope.launch {
-            val result = cleaningRepository.assignCleaning(reservationId, cleanerId)
-            if (result.isSuccess) {
-                loadData() // Reload data
+            val canAssign = repository.hasPermission("gestao_faxinas_assign")
+            val canReassign = repository.hasPermission("gestao_faxinas_reassign")
+            val canManage = repository.hasPermission("gestao_faxinas_manage")
+            
+            _uiState.update { 
+                it.copy(
+                    canAssign = canAssign,
+                    canReassign = canReassign,
+                    canManageStatus = canManage
+                ) 
             }
         }
     }
 
-    fun unassignCleaning(reservationId: String) {
-        viewModelScope.launch {
-            val result = cleaningRepository.unassignCleaning(reservationId)
-            if (result.isSuccess) {
-                loadData() // Reload data
-            }
-        }
+    fun onTabSelected(tab: CleaningTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
+        applyFilters()
     }
 
-    fun toggleCleaningStatus(reservationId: String) {
-        viewModelScope.launch {
-            val result = cleaningRepository.toggleCleaningStatus(reservationId)
-            if (result.isSuccess) {
-                loadData() // Reload data
-            }
-        }
+    fun onSearchQueryChanged(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+        applyFilters()
     }
 
-    // Filtered lists
-    val pendingCleanings: List<CleaningReservation>
-        get() = _allCleanings.value.filter { it.cleaningStatus?.equals("Pendente", ignoreCase = true) == true }
+    fun onCleanerFilterSelected(cleanerId: String?) {
+        _uiState.update { it.copy(selectedCleanerFilter = cleanerId) }
+        applyFilters()
+    }
     
-    val completedCleanings: List<CleaningReservation>
-        get() = _allCleanings.value.filter { it.cleaningStatus?.equals("Realizada", ignoreCase = true) == true }
-}
+    fun onRefresh() {
+        loadData()
+    }
 
-data class CleaningStats(
-    val totalCleanings: Int = 0,
-    val pendingCleanings: Int = 0,
-    val completedCleanings: Int = 0,
-    val availableCleanings: Int = 0
-)
+    private fun applyFilters() {
+        val currentState = _uiState.value
+        val tab = currentState.selectedTab
+        val query = currentState.searchQuery.lowercase()
+        val cleanerId = currentState.selectedCleanerFilter
 
-sealed class CleaningUiState {
-    object Loading : CleaningUiState()
-    object Success : CleaningUiState()
-    data class Error(val message: String) : CleaningUiState()
+        // Choose source list based on tab
+        var listToFilter = if (tab == CleaningTab.AVAILABLE) {
+            currentState.availableCleanings
+        } else {
+            currentState.allCleanings
+        }
+
+        // Filter by Tab Status
+        if (tab == CleaningTab.PENDING) {
+            listToFilter = listToFilter.filter { it.cleaning_status == "Pendente" }
+        } else if (tab == CleaningTab.COMPLETED) {
+            listToFilter = listToFilter.filter { it.cleaning_status == "Realizada" }
+        }
+
+        // Filter by Cleaner
+        if (cleanerId != null && tab != CleaningTab.AVAILABLE) { // Available items don't have cleaners usually
+             listToFilter = listToFilter.filter { it.cleaner_user_id == cleanerId }
+        }
+
+        // Filter by Search
+        if (query.isNotEmpty()) {
+            listToFilter = listToFilter.filter { item ->
+                item.properties?.name?.lowercase()?.contains(query) == true ||
+                item.reservation_code.lowercase().contains(query) ||
+                item.guest_name?.lowercase()?.contains(query) == true ||
+                item.cleaner_info?.full_name?.lowercase()?.contains(query) == true
+            }
+        }
+        
+        // Sort: Urgent first (based on checkout date close to today), then by check-out date
+        listToFilter = listToFilter.sortedBy { it.check_out_date }
+
+        _uiState.update { it.copy(displayedCleanings = listToFilter) }
+    }
+
+    private fun calculateCleanerStats(cleanings: List<ReservationWithCleanerInfo>): Map<String, CleanerStats> {
+        return cleanings
+            .filter { it.cleaner_user_id != null && it.cleaner_info != null }
+            .groupBy { it.cleaner_user_id!! }
+            .mapValues { (_, reservations) ->
+                val first = reservations.first()
+                CleanerStats(
+                    name = first.cleaner_info!!.full_name,
+                    total = reservations.size,
+                    pending = reservations.count { it.cleaning_status == "Pendente" },
+                    completed = reservations.count { it.cleaning_status == "Realizada" }
+                )
+            }
+    }
+
+    // Actions
+    fun assignCleaner(reservationId: String, cleanerId: String) {
+        viewModelScope.launch {
+            val result = repository.assignCleaning(reservationId, cleanerId)
+            if (result.isSuccess) {
+                loadData() // Refresh on success
+            } else {
+                 _uiState.update { it.copy(errorMessage = "Erro ao atribuir faxineira") }
+            }
+        }
+    }
+
+    fun reassignCleaner(reservationId: String, cleanerId: String) {
+        viewModelScope.launch {
+            val result = repository.reassignCleaning(reservationId, cleanerId)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.update { it.copy(errorMessage = "Erro ao reatribuir faxineira") }
+            }
+        }
+    }
+
+    fun unassignCleaner(reservationId: String) {
+        viewModelScope.launch {
+            val result = repository.unassignCleaning(reservationId)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.update { it.copy(errorMessage = "Erro ao remover faxineira") }
+            }
+        }
+    }
+
+    fun toggleStatus(reservationId: String) {
+        viewModelScope.launch {
+            val result = repository.toggleCleaningStatus(reservationId)
+            if (result.isSuccess) {
+                loadData()
+            } else {
+                _uiState.update { it.copy(errorMessage = "Erro ao alterar status") }
+            }
+        }
+    }
 }
