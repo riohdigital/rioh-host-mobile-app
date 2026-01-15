@@ -11,8 +11,8 @@ data class ReservationWithCleanerInfo(
     val guest_name: String?,
     val guest_phone: String?,
     val number_of_guests: Int?,
-    val check_in_date: String,           // "2026-01-15"
-    val check_out_date: String,          // "2026-01-18"
+    val check_in_date: String? = null,           // "2026-01-15"
+    val check_out_date: String? = null,          // "2026-01-18"
     val checkin_time: String?,           // "15:00"
     val checkout_time: String?,          // "11:00"
     val total_revenue: Double?,
@@ -20,10 +20,10 @@ data class ReservationWithCleanerInfo(
     val commission_amount: Double?,
     val net_revenue: Double?,
     val payment_status: String?,
-    val reservation_status: String,      // "Confirmada", "Cancelada", "Finalizada"
+    val reservation_status: String? = null,      // "Confirmada", "Cancelada", "Finalizada"
     val is_communicated: Boolean?,
     val receipt_sent: Boolean?,
-    val created_at: String,
+    val created_at: String? = null,
     
     // Campos de Faxina (MAIS IMPORTANTES)
     val cleaner_user_id: String?,        // UUID da faxineira atribuida
@@ -45,26 +45,26 @@ data class ReservationWithCleanerInfo(
 
 @Serializable
 data class PropertyInfo(
-    val id: String,
-    val name: String,
-    val address: String,
+    val id: String? = null,
+    val name: String? = null,
+    val address: String? = null,
     val default_checkin_time: String?
 )
 
 @Serializable
 data class CleaningCleanerInfo(
-    val id: String, // Note: This might map to user_id or id depending on the view
-    val full_name: String,
-    val email: String,
-    val phone: String?
+    val id: String? = null, 
+    val full_name: String? = null,
+    val email: String? = null,
+    val phone: String? = null
 )
 
 @Serializable
 data class CleaningCleanerProfile(
-    val id: String,
-    val user_id: String,
-    val full_name: String,
-    val email: String,
+    val id: String? = null,
+    val user_id: String? = null,
+    val full_name: String? = null,
+    val email: String? = null,
     val phone: String?,
     val is_active: Boolean?
 )

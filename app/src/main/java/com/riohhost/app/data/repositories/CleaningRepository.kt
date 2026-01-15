@@ -15,19 +15,14 @@ class CleaningRepository {
         endDate: String,
         propertyIds: List<String>?
     ): List<ReservationWithCleanerInfo> {
-        return try {
-            supabase.postgrest.rpc(
-                "fn_get_all_cleaner_reservations",
-                mapOf(
-                    "start_date" to startDate,
-                    "end_date" to endDate,
-                    "property_ids" to propertyIds
-                )
-            ).decodeList()
-        } catch (e: Exception) {
-            println("CleaningRepo: Error fetching cleaner reservations: ${e.message}")
-            emptyList()
-        }
+        return supabase.postgrest.rpc(
+            "fn_get_all_cleaner_reservations",
+            mapOf(
+                "start_date" to startDate,
+                "end_date" to endDate,
+                "property_ids" to propertyIds
+            )
+        ).decodeList()
     }
 
     suspend fun getAllAvailableReservations(
@@ -35,33 +30,23 @@ class CleaningRepository {
         endDate: String,
         propertyIds: List<String>?
     ): List<ReservationWithCleanerInfo> {
-        return try {
-            supabase.postgrest.rpc(
-                "fn_get_all_available_reservations",
-                mapOf(
-                    "start_date" to startDate,
-                    "end_date" to endDate,
-                    "property_ids" to propertyIds
-                )
-            ).decodeList()
-        } catch (e: Exception) {
-            println("CleaningRepo: Error fetching available reservations: ${e.message}")
-            emptyList()
-        }
+        return supabase.postgrest.rpc(
+            "fn_get_all_available_reservations",
+            mapOf(
+                "start_date" to startDate,
+                "end_date" to endDate,
+                "property_ids" to propertyIds
+            )
+        ).decodeList()
     }
 
     suspend fun getCleanersForProperties(
         propertyIds: List<String>?
     ): List<CleaningCleanerProfile> {
-        return try {
-             supabase.postgrest.rpc(
-                "fn_get_cleaners_for_properties",
-                mapOf("property_ids" to propertyIds)
-            ).decodeList()
-        } catch (e: Exception) {
-            println("CleaningRepo: Error fetching property cleaners: ${e.message}")
-            emptyList()
-        }
+        return supabase.postgrest.rpc(
+            "fn_get_cleaners_for_properties",
+            mapOf("property_ids" to propertyIds)
+        ).decodeList()
     }
 
     suspend fun getPropertyCleanersForUser(
