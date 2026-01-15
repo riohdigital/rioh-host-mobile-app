@@ -6,6 +6,7 @@ import com.riohhost.app.data.models.ReservationWithCleanerInfo
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.json.JsonObject
 
 class CleaningRepository {
     private val supabase = SupabaseClient.client
@@ -144,7 +145,7 @@ class CleaningRepository {
                         eq("permission_value", true)
                     }
                 }
-                .decodeSingleOrNull<Map<String, Any>>()
+                .decodeSingleOrNull<JsonObject>()
             
             result != null
         } catch (e: Exception) {
