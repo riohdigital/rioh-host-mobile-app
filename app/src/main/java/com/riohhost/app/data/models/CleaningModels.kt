@@ -40,7 +40,7 @@ data class ReservationWithCleanerInfo(
     
     // Objetos relacionados (retornados pela RPC)
     val properties: PropertyInfo?,
-    val cleaner_info: CleanerInfo?
+    val cleaner_info: CleaningCleanerInfo?
 )
 
 @Serializable
@@ -52,7 +52,7 @@ data class PropertyInfo(
 )
 
 @Serializable
-data class CleanerInfo(
+data class CleaningCleanerInfo(
     val id: String, // Note: This might map to user_id or id depending on the view
     val full_name: String,
     val email: String,
@@ -60,7 +60,7 @@ data class CleanerInfo(
 )
 
 @Serializable
-data class CleanerProfile(
+data class CleaningCleanerProfile(
     val id: String,
     val user_id: String,
     val full_name: String,

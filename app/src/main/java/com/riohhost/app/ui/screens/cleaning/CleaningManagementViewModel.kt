@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import com.riohhost.app.data.models.CleaningCleanerProfile
 
 class CleaningManagementViewModel(
     private val repository: CleaningRepository = CleaningRepository()
@@ -32,7 +32,7 @@ class CleaningManagementViewModel(
             try {
                 // Fetch for current month + next month for context, or a wider range
                 // For now, let's hardcode a reasonable range or calculate it dynamically
-                val today = LocalDate.now()
+                val today = java.time.LocalDate.now()
                 val startDate = today.minusDays(7).toString() // 1 week back
                 val endDate = today.plusMonths(2).toString()  // 2 months forward
 

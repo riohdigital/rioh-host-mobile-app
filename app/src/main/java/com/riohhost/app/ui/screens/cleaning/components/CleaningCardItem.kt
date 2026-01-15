@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.riohhost.app.data.models.CleanerProfile
+import com.riohhost.app.data.models.CleaningCleanerProfile
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -29,7 +29,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CleaningCardItem(
     cleaning: ReservationWithCleanerInfo,
-    cleaners: List<CleanerProfile>,
+    cleaners: List<CleaningCleanerProfile>,
     onAssign: (String) -> Unit, // cleanerId
     onUnassign: () -> Unit,
     onToggleStatus: () -> Unit,
@@ -222,7 +222,7 @@ fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Strin
 
 @Composable
 fun AssignCleanerDialog(
-    cleaners: List<CleanerProfile>,
+    cleaners: List<CleaningCleanerProfile>,
     onDismiss: () -> Unit,
     onAssign: (String) -> Unit
 ) {

@@ -1,9 +1,9 @@
 package com.riohhost.app.data.repositories
 
 import com.riohhost.app.data.api.SupabaseClient
-import com.riohhost.app.data.models.CleanerProfile
+import com.riohhost.app.data.models.CleaningCleanerProfile
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
-import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 
@@ -52,7 +52,7 @@ class CleaningRepository {
 
     suspend fun getCleanersForProperties(
         propertyIds: List<String>?
-    ): List<CleanerProfile> {
+    ): List<CleaningCleanerProfile> {
         return try {
              supabase.postgrest.rpc(
                 "fn_get_cleaners_for_properties",
@@ -66,7 +66,7 @@ class CleaningRepository {
 
     suspend fun getPropertyCleanersForUser(
         propertyId: String
-    ): List<CleanerProfile> {
+    ): List<CleaningCleanerProfile> {
         return try {
             supabase.postgrest.rpc(
                 "fn_get_property_cleaners_for_user",

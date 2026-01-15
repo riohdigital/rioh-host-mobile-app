@@ -1,6 +1,6 @@
 package com.riohhost.app.ui.screens.cleaning.models
 
-import com.riohhost.app.data.models.CleanerProfile
+import com.riohhost.app.data.models.CleaningCleanerProfile
 import com.riohhost.app.data.models.CleanerStats
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
 
@@ -11,7 +11,7 @@ data class CleaningUiState(
     // Data Lists
     val allCleanings: List<ReservationWithCleanerInfo> = emptyList(),
     val availableCleanings: List<ReservationWithCleanerInfo> = emptyList(),
-    val cleaners: List<CleanerProfile> = emptyList(),
+    val cleaners: List<CleaningCleanerProfile> = emptyList(),
     
     // Filter State
     val selectedTab: CleaningTab = CleaningTab.ALL,
