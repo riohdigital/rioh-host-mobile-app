@@ -141,7 +141,7 @@ fun CleaningCardItem(
                             color = MaterialTheme.colorScheme.secondary
                         )
                         Text(
-                            text = cleaning.cleaner_info.full_name,
+                            text = cleaning.cleaner_info.full_name ?: "Desconhecido",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -235,13 +235,13 @@ fun AssignCleanerDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onAssign(cleaner.user_id) }
+                            .clickable { cleaner.user_id?.let { onAssign(it) } }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Person, contentDescription = null)
                         Spacer(modifier = Modifier.width(16.dp))
-                        Text(cleaner.full_name)
+                        Text(cleaner.full_name ?: "Sem Nome")
                     }
                     Divider()
                 }
@@ -260,6 +260,7 @@ fun AssignCleanerDialog(
 }
 
 fun isUrgent(cleaning: ReservationWithCleanerInfo): Boolean {
+    if (cleaning.check_out_date == null) return false
     val checkoutDate = LocalDate.parse(cleaning.check_out_date) // Assuming ISO format from backend
     val tomorrow = LocalDate.now().plusDays(1)
     val isCompleted = cleaning.cleaning_status == "Realizada"
@@ -268,7 +269,8 @@ fun isUrgent(cleaning: ReservationWithCleanerInfo): Boolean {
     return checkoutDate <= tomorrow && !isCompleted && !isFinalized
 }
 
-fun formatDate(dateString: String): String {
+fun formatDate(dateString: String?): String {
+    if (dateString == null) return "N/A"
     return try {
         val date = LocalDate.parse(dateString)
         date.format(DateTimeFormatter.ofPattern("dd/MM"))

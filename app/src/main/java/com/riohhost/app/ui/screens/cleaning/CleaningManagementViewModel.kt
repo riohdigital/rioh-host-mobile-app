@@ -146,7 +146,7 @@ class CleaningManagementViewModel(
             .mapValues { (_, reservations) ->
                 val first = reservations.first()
                 CleanerStats(
-                    name = first.cleaner_info!!.full_name,
+                    name = first.cleaner_info!!.full_name ?: "Desconhecido",
                     total = reservations.size,
                     pending = reservations.count { it.cleaning_status == "Pendente" },
                     completed = reservations.count { it.cleaning_status == "Realizada" }
