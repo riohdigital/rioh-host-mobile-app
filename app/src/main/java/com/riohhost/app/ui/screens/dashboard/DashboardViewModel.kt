@@ -79,18 +79,33 @@ class DashboardViewModel : ViewModel() {
                 android.util.Log.d("DashboardVM", "Carregando: $startDate a $endDate, props: $propertyIds, platform: $platform")
                 
                 // Fetch all data in parallel
-                val properties = propertyRepository.getProperties()
-                val reservations = reservationRepository.getReservationsFiltered(
-                    startDate = startDate,
-                    endDate = endDate,
-                    propertyIds = propertyIds,
-                    platform = platform
+                var properties: List<Property> = emptyList()
+                var reservations: List<Reservation> = emptyList()
+                var expenses: List<com.riohhost.app.data.models.Expense> = emptyList()
+                var todaysEvents: com.riohhost.app.data.models.TodaysEvents = com.riohhost.app.data.models.TodaysEvents()
+                var alerts: List<com.riohhost.app.data.models.OperationalAlert> = emptyList()
+
+                val jobs = listOf(
+                    launch { properties = propertyRepository.getProperties() },
+                    launch { 
+                        reservations = reservationRepository.getReservationsFiltered(
+                            startDate = startDate,
+                            endDate = endDate,
+                            propertyIds = propertyIds,
+                            platform = platform
+                        )
+                    },
+                    launch {
+                        expenses = expenseRepository.getExpensesFiltered(
+                            startDate = startDate,
+                            endDate = endDate,
+                            propertyIds = propertyIds
+                        )
+                    },
+                    launch { todaysEvents = reservationRepository.getTodaysEvents() },
+                    launch { alerts = reservationRepository.getOperationalAlerts() }
                 )
-                val expenses = expenseRepository.getExpensesFiltered(
-                    startDate = startDate,
-                    endDate = endDate,
-                    propertyIds = propertyIds
-                )
+                jobs.forEach { it.join() }
                 
                 android.util.Log.d("DashboardVM", "Dados: ${properties.size} props, ${reservations.size} reservas, ${expenses.size} despesas")
                 
@@ -108,7 +123,9 @@ class DashboardViewModel : ViewModel() {
                 _uiState.value = DashboardUiState.Success(
                     kpis = kpis,
                     properties = properties,
-                    reservations = reservations
+                    reservations = reservations,
+                    todaysEvents = todaysEvents,
+                    alerts = alerts
                 )
             } catch (e: Exception) {
                 android.util.Log.e("DashboardVM", "Erro no dashboard: ${e.message}", e)
@@ -156,6 +173,22 @@ class DashboardViewModel : ViewModel() {
                 reservations.sumOf { it.totalRevenue ?: 0.0 } 
             }
         
+        // Avg Ticket
+        val avgTicket = if (reservations.isNotEmpty()) totalRevenue / reservations.size else 0.0
+        
+        // Avg Nightly Revenue
+        val totalNights = reservations.sumOf { res ->
+            val checkIn = res.checkInDate?.let { try { LocalDate.parse(it) } catch(e: Exception) { null } }
+            val checkOut = res.checkOutDate?.let { try { LocalDate.parse(it) } catch(e: Exception) { null } }
+            
+            if (checkIn != null && checkOut != null) {
+                ChronoUnit.DAYS.between(checkIn, checkOut).coerceAtLeast(1)
+            } else {
+                0L
+            }
+        }
+        val avgNightlyRevenue = if (totalNights > 0) totalRevenue / totalNights else 0.0
+
         return DashboardKpis(
             totalRevenue = totalRevenue,
             netRevenue = netRevenue,
@@ -165,6 +198,8 @@ class DashboardViewModel : ViewModel() {
             occupancyRate = occupancyRate,
             activeProperties = activePropertiesCount,
             totalReservations = reservations.size,
+            avgTicket = avgTicket,
+            avgNightlyRevenue = avgNightlyRevenue,
             revenueByPlatform = revenueByPlatform
         )
     }
@@ -211,12 +246,12 @@ class DashboardViewModel : ViewModel() {
      */
     fun refresh() {
         if (globalFilters != null) {
-            val dateRange = globalFilters!!.dateRangeStrings.value
+            val dateRange = globalFilters.dateRangeStrings.value
             loadDashboardData(
                 startDate = dateRange.first,
                 endDate = dateRange.second,
-                propertyIds = globalFilters!!.getPropertyFilter(),
-                platform = globalFilters!!.getPlatformFilter()
+                propertyIds = globalFilters.getPropertyFilter(),
+                platform = globalFilters.getPlatformFilter()
             )
         } else {
             // Default to current year
@@ -242,6 +277,8 @@ data class DashboardKpis(
     val occupancyRate: Double,
     val activeProperties: Int,
     val totalReservations: Int,
+    val avgTicket: Double,
+    val avgNightlyRevenue: Double,
     val revenueByPlatform: Map<String, Double>
 )
 
@@ -250,7 +287,9 @@ sealed class DashboardUiState {
     data class Success(
         val kpis: DashboardKpis,
         val properties: List<Property>,
-        val reservations: List<Reservation>
+        val reservations: List<Reservation>,
+        val todaysEvents: com.riohhost.app.data.models.TodaysEvents = com.riohhost.app.data.models.TodaysEvents(),
+        val alerts: List<com.riohhost.app.data.models.OperationalAlert> = emptyList()
     ) : DashboardUiState()
     data class Error(val message: String) : DashboardUiState()
 }

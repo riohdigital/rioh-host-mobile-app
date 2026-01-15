@@ -245,6 +245,113 @@ class ReservationRepository {
         }
     }
 
+    suspend fun getTodaysEvents(): com.riohhost.app.data.models.TodaysEvents {
+        return try {
+            val today = java.time.LocalDate.now().toString()
+            
+            // Check-ins today
+            val checkins = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+                filter {
+                    eq("check_in_date", today)
+                    eq("reservation_status", "Confirmada")
+                }
+            }.countOrNull() ?: 0
+
+            // Check-outs today
+            val checkouts = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+                filter {
+                    eq("check_out_date", today)
+                    isIn("reservation_status", listOf("Confirmada", "Em Andamento"))
+                }
+            }.countOrNull() ?: 0
+
+            // Cleanings today (based on checkout)
+            val cleanings = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+                filter {
+                    eq("check_out_date", today)
+                    neq("cleaning_status", "Realizada")
+                    isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                }
+            }.countOrNull() ?: 0
+
+            com.riohhost.app.data.models.TodaysEvents(checkins.toInt(), checkouts.toInt(), cleanings.toInt())
+        } catch (e: Exception) {
+            println("ReservationRepo: Erro ao buscar eventos de hoje: ${e.message}")
+            com.riohhost.app.data.models.TodaysEvents()
+        }
+    }
+
+    suspend fun getOperationalAlerts(): List<com.riohhost.app.data.models.OperationalAlert> {
+        val alerts = mutableListOf<com.riohhost.app.data.models.OperationalAlert>()
+        try {
+            val today = java.time.LocalDate.now()
+            
+            // 1. Reserves without cleaner (Checkout in next 3 days)
+            val threeDaysFromNow = today.plusDays(3).toString()
+            val noCleanerCount = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+                filter {
+                    gte("check_out_date", today.toString())
+                    lte("check_out_date", threeDaysFromNow)
+                    isIn("reservation_status", listOf("Confirmada", "Em Andamento"))
+                    isExact("cleaner_user_id", null)
+                }
+            }.countOrNull() ?: 0
+
+            if (noCleanerCount > 0) {
+                alerts.add(com.riohhost.app.data.models.OperationalAlert(
+                    type = "no_cleaner",
+                    count = noCleanerCount.toInt(),
+                    message = "$noCleanerCount reservas sem faxineira atribuída",
+                    severity = "critical"
+                ))
+            }
+
+            // 2. Guests not communicated (Check-in in 24h)
+            val tomorrow = today.plusDays(1).toString()
+            val notCommunicatedCount = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+                filter {
+                    gte("check_in_date", today.toString())
+                    lte("check_in_date", tomorrow)
+                    eq("reservation_status", "Confirmada")
+                    eq("is_communicated", false)
+                }
+            }.countOrNull() ?: 0
+
+            if (notCommunicatedCount > 0) {
+                alerts.add(com.riohhost.app.data.models.OperationalAlert(
+                    type = "no_communication",
+                    count = notCommunicatedCount.toInt(),
+                    message = "$notCommunicatedCount hóspedes não comunicados (check-in próximo)",
+                    severity = "warning"
+                ))
+            }
+
+            // 3. Pending Payments (Total)
+            val pendingPayments = supabase.postgrest.from("reservations").select {
+                filter {
+                    eq("payment_status", "Pendente")
+                    isIn("reservation_status", listOf("Confirmada", "Finalizada"))
+                }
+            }.decodeList<Reservation>()
+            
+            val totalPendingValue = pendingPayments.sumOf { it.totalRevenue ?: 0.0 }
+            
+            if (pendingPayments.isNotEmpty()) {
+                val formattedValue = com.riohhost.app.utils.CurrencyUtils.formatBRL(totalPendingValue)
+                alerts.add(com.riohhost.app.data.models.OperationalAlert(
+                    type = "pending_payment",
+                    count = pendingPayments.size,
+                    message = "$formattedValue em pagamentos pendentes",
+                    severity = "warning"
+                ))
+            }
+
+        } catch (e: Exception) {
+            println("ReservationRepo: Erro ao buscar alertas: ${e.message}")
+        }
+        return alerts
+    }
+
     private fun processCleaningDestination(destination: String?): Pair<String?, String?> {
         val uuidRegex = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$".toRegex(RegexOption.IGNORE_CASE)
         

@@ -124,6 +124,18 @@ fun DashboardScreen(
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // 0. Today Section
+                    item {
+                        TodayCard(state.todaysEvents)
+                    }
+
+                    // 0.5 Alerts Section
+                    if (state.alerts.isNotEmpty()) {
+                        item {
+                            AlertsSection(state.alerts)
+                        }
+                    }
+
                     // Main KPI Cards - Row 1
                     item {
                         Row(
@@ -154,17 +166,40 @@ fun DashboardScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             GradientKPICard(
+                                title = "Ticket Médio",
+                                value = CurrencyUtils.formatBRL(state.kpis.avgTicket),
+                                icon = Icons.Default.AttachMoney,
+                                gradientColors = OrangeGradient,
+                                modifier = Modifier.weight(1f)
+                            )
+                            GradientKPICard(
+                                title = "Diária Média",
+                                value = CurrencyUtils.formatBRL(state.kpis.avgNightlyRevenue),
+                                icon = Icons.Default.Home,
+                                gradientColors = PurpleGradient,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Main KPI Cards - Row 3 (Profit/Expenses)
+                    item {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            GradientKPICard(
                                 title = "Despesas",
                                 value = CurrencyUtils.formatBRL(state.kpis.totalExpenses),
                                 icon = Icons.Default.TrendingDown,
-                                gradientColors = OrangeGradient,
+                                gradientColors = listOf(Color(0xFFEF4444), Color(0xFFB91C1C)), // Red
                                 modifier = Modifier.weight(1f)
                             )
                             GradientKPICard(
                                 title = "Lucro Líquido",
                                 value = CurrencyUtils.formatBRL(state.kpis.netProfit),
                                 icon = Icons.Default.TrendingUp,
-                                gradientColors = PurpleGradient,
+                                gradientColors = listOf(Color(0xFF10B981), Color(0xFF047857)), // Green
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -321,7 +356,7 @@ private fun GradientKPICard(
                         .size(40.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color.White.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
@@ -403,6 +438,85 @@ private fun PerformanceCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayCard(events: com.riohhost.app.data.models.TodaysEvents) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = "HOJE - ${java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd 'de' MMMM"))}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TodayStat("Check-ins", events.checkins, Icons.Default.Home)
+                TodayStat("Check-outs", events.checkouts, Icons.Default.Home) // different icon?
+                TodayStat("Faxinas", events.cleanings, Icons.Default.Refresh)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayStat(label: String, count: Int, icon: ImageVector) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+        )
+    }
+}
+
+@Composable
+private fun AlertsSection(alerts: List<com.riohhost.app.data.models.OperationalAlert>) {
+    Column {
+        Text("ALERTAS OPERACIONAIS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+        Spacer(modifier = Modifier.height(8.dp))
+        alerts.forEach { alert ->
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (alert.severity == "critical") MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
+                )
+            ) {
+                Row(
+                    Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        if (alert.severity == "critical") Icons.Default.TrendingDown else Icons.Outlined.Handshake, // Warning icon
+                        contentDescription = null,
+                        tint = if (alert.severity == "critical") MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = alert.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (alert.severity == "critical") MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
             }
         }
     }

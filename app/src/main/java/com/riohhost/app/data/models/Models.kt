@@ -94,6 +94,21 @@ data class Expense(
 )
 
 @Serializable
+data class TodaysEvents(
+    val checkins: Int = 0,
+    val checkouts: Int = 0,
+    val cleanings: Int = 0
+)
+
+@Serializable
+data class OperationalAlert(
+    val type: String, // "no_cleaner", "no_communication", "pending_payment"
+    val count: Int,
+    val message: String,
+    val severity: String = "warning" // "warning", "critical"
+)
+
+@Serializable
 enum class MessageRole {
     @SerialName("user") USER,
     @SerialName("assistant") ASSISTANT,
