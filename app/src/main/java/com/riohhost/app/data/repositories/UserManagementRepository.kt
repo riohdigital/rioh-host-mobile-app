@@ -14,10 +14,23 @@ class UserManagementRepository {
             // If email is in auth.users, we might need an RPC or a joined view.
             // Assuming the table is named 'user_profiles' to match AuthRepository
             supabase.postgrest.from("user_profiles")
-                .select()
-                .decodeList<UserProfile>()
+            .select()
+            .decodeList<UserProfile>()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun getUserProfile(userId: String): UserProfile? {
+        return try {
+            supabase.postgrest.from("user_profiles")
+                .select {
+                    filter { eq("user_id", userId) }
+                }
+                .decodeSingle<UserProfile>()
+        } catch (e: Exception) {
+            println("UserManagementRepo: Erro ao buscar usuario $userId: ${e.message}")
+            null
         }
     }
 }
