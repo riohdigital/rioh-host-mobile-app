@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.riohhost.app.data.models.CleaningCleanerProfile
+import android.util.Log
 import java.time.LocalDate
 
 class CleaningManagementViewModel(
@@ -46,9 +47,9 @@ class CleaningManagementViewModel(
                 val available = availableDeferred
                 val cleaners = cleanersDeferred
 
-                println("DEBUG: Assigned Cleanings: ${assigned.size}")
-                println("DEBUG: Available Cleanings: ${available.size}")
-                println("DEBUG: Cleaners: ${cleaners.size}")
+                Log.d("CleaningVM", "Assigned Cleanings: ${assigned.size}")
+                Log.d("CleaningVM", "Available Cleanings: ${available.size}")
+                Log.d("CleaningVM", "Cleaners: ${cleaners.size}")
 
                 val stats = calculateCleanerStats(assigned)
 
@@ -63,7 +64,7 @@ class CleaningManagementViewModel(
                 }
                 applyFilters() // Apply initial filters to set displayedCleanings
             } catch (e: Exception) {
-                println("DEBUG: Error in loadData: ${e.message}")
+                Log.e("CleaningVM", "Error in loadData", e)
                 e.printStackTrace()
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }

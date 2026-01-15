@@ -11,6 +11,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.JsonNull
+import android.util.Log
 
 class CleaningRepository {
     private val supabase = SupabaseClient.client
@@ -25,11 +28,11 @@ class CleaningRepository {
             buildJsonObject {
                 put("start_date", startDate)
                 put("end_date", endDate)
-                putJsonArray("property_ids") {
-                    propertyIds?.forEach { add(it) }
-                }
+                put("property_ids", if (propertyIds == null) JsonNull else buildJsonArray {
+                    propertyIds.forEach { add(it) }
+                })
             }
-        ).decodeList<ReservationWithCleanerInfo>().also { println("DEBUG: getAllCleanerReservations result size: ${it.size}") }
+        ).decodeList<ReservationWithCleanerInfo>().also { Log.d("CleaningRepo", "getAllCleanerReservations result size: ${it.size}") }
     }
 
     suspend fun getAllAvailableReservations(
@@ -42,11 +45,11 @@ class CleaningRepository {
             buildJsonObject {
                 put("start_date", startDate)
                 put("end_date", endDate)
-                putJsonArray("property_ids") {
-                    propertyIds?.forEach { add(it) }
-                }
+                put("property_ids", if (propertyIds == null) JsonNull else buildJsonArray {
+                    propertyIds.forEach { add(it) }
+                })
             }
-        ).decodeList<ReservationWithCleanerInfo>().also { println("DEBUG: getAllAvailableReservations result size: ${it.size}") }
+        ).decodeList<ReservationWithCleanerInfo>().also { Log.d("CleaningRepo", "getAllAvailableReservations result size: ${it.size}") }
     }
 
     suspend fun getCleanersForProperties(
@@ -55,9 +58,9 @@ class CleaningRepository {
         return supabase.postgrest.rpc(
             "fn_get_cleaners_for_properties",
             buildJsonObject {
-                putJsonArray("property_ids") {
-                    propertyIds?.forEach { add(it) }
-                }
+                put("property_ids", if (propertyIds == null) JsonNull else buildJsonArray {
+                    propertyIds.forEach { add(it) }
+                })
             }
         ).decodeList<CleaningCleanerProfile>()
     }
