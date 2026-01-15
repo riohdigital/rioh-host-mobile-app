@@ -7,6 +7,10 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.add
 
 class CleaningRepository {
     private val supabase = SupabaseClient.client
@@ -18,11 +22,13 @@ class CleaningRepository {
     ): List<ReservationWithCleanerInfo> {
         return supabase.postgrest.rpc(
             "fn_get_all_cleaner_reservations",
-            mapOf(
-                "start_date" to startDate,
-                "end_date" to endDate,
-                "property_ids" to propertyIds
-            )
+            buildJsonObject {
+                put("start_date", startDate)
+                put("end_date", endDate)
+                putJsonArray("property_ids") {
+                    propertyIds?.forEach { add(it) }
+                }
+            }
         ).decodeList()
     }
 
@@ -33,11 +39,13 @@ class CleaningRepository {
     ): List<ReservationWithCleanerInfo> {
         return supabase.postgrest.rpc(
             "fn_get_all_available_reservations",
-            mapOf(
-                "start_date" to startDate,
-                "end_date" to endDate,
-                "property_ids" to propertyIds
-            )
+            buildJsonObject {
+                put("start_date", startDate)
+                put("end_date", endDate)
+                putJsonArray("property_ids") {
+                    propertyIds?.forEach { add(it) }
+                }
+            }
         ).decodeList()
     }
 
@@ -46,7 +54,11 @@ class CleaningRepository {
     ): List<CleaningCleanerProfile> {
         return supabase.postgrest.rpc(
             "fn_get_cleaners_for_properties",
-            mapOf("property_ids" to propertyIds)
+            buildJsonObject {
+                putJsonArray("property_ids") {
+                    propertyIds?.forEach { add(it) }
+                }
+            }
         ).decodeList()
     }
 
