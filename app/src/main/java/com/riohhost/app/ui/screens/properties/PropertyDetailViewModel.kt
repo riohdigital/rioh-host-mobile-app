@@ -36,7 +36,7 @@ class PropertyDetailViewModel(
     
     // Backward compatibility for property flow if needed, but better to migrate UI
     @Deprecated("Use uiState.property instead")
-    val property = kotlinx.coroutines.flow.map { _uiState.value.property }
+    val property = _uiState.map { it.property }
 
     fun loadProperty(id: String) {
         viewModelScope.launch {
