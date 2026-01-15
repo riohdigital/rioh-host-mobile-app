@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -63,7 +64,8 @@ fun ReservationsListScreen(
     onReservationClick: (String) -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToNewReservation: () -> Unit,
-    onNavigateToNewProperty: () -> Unit
+    onNavigateToNewProperty: () -> Unit,
+    onNavigateToCleaningManagement: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -92,6 +94,11 @@ fun ReservationsListScreen(
                         icon = Icons.Default.Home, // Using Home icon for Property
                         label = "Criar Propriedade",
                         onClick = onNavigateToNewProperty
+                    ),
+                    com.riohhost.app.ui.components.FabItem(
+                        icon = Icons.Default.CheckCircle,
+                        label = "Gestão de Faxinas",
+                        onClick = onNavigateToCleaningManagement
                     )
                 )
             )

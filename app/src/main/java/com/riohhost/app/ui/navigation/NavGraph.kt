@@ -52,6 +52,7 @@ sealed class Screen(val route: String) {
     object Chat : Screen("chat")
     object Users : Screen("users")
     object Alerts : Screen("alerts")
+    object CleaningManagement : Screen("cleaning_management")
 }
 
 @Composable
@@ -144,7 +145,8 @@ fun NavGraph() {
                     },
                     onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onNavigateToNewReservation = { navController.navigate(Screen.ReservationForm.route) },
-                    onNavigateToNewProperty = { navController.navigate(Screen.PropertyForm.route) }
+                    onNavigateToNewProperty = { navController.navigate(Screen.PropertyForm.route) },
+                    onNavigateToCleaningManagement = { navController.navigate(Screen.CleaningManagement.route) }
                 )
             }
             composable(Screen.ReservationForm.route) {
@@ -212,6 +214,11 @@ fun NavGraph() {
             }
             composable(Screen.Alerts.route) {
                 com.riohhost.app.ui.screens.alerts.AlertsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.CleaningManagement.route) {
+                com.riohhost.app.ui.screens.cleaning.CleaningManagementScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
