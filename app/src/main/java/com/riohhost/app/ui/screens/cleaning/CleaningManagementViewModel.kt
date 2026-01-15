@@ -127,7 +127,7 @@ class CleaningManagementViewModel(
         if (query.isNotEmpty()) {
             listToFilter = listToFilter.filter { item ->
                 item.properties?.name?.lowercase()?.contains(query) == true ||
-                item.reservation_code.lowercase().contains(query) ||
+                item.reservation_code?.lowercase()?.contains(query) == true ||
                 item.guest_name?.lowercase()?.contains(query) == true ||
                 item.cleaner_info?.full_name?.lowercase()?.contains(query) == true
             }
