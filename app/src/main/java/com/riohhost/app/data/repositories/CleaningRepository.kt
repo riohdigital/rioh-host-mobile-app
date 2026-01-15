@@ -18,6 +18,10 @@ import android.util.Log
 class CleaningRepository {
     private val supabase = SupabaseClient.client
 
+    // Helper for permissions
+    @kotlinx.serialization.Serializable
+    private data class UserPermission(val permission_name: String)
+
     suspend fun getAllCleanerReservations(
         startDate: String,
         endDate: String,
@@ -166,6 +170,34 @@ class CleaningRepository {
         } catch (e: Exception) {
             println("CleaningRepo: Permission check failed: ${e.message}")
             false
+        }
+    }
+
+    suspend fun getCleaningPermissions(): com.riohhost.app.data.models.CleaningPermissions {
+        return try {
+            val userId = supabase.auth.currentUserOrNull()?.id 
+                ?: return com.riohhost.app.data.models.CleaningPermissions()
+
+            val permissions = supabase.postgrest
+                .from("user_permissions")
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                        eq("is_granted", true)
+                    }
+                }
+                .decodeList<UserPermission>()
+
+            val permissionSet = permissions.map { it.permission_name }.toSet()
+
+            com.riohhost.app.data.models.CleaningPermissions(
+                canAssign = "gestao_faxinas_assign" in permissionSet,
+                canReassign = "gestao_faxinas_reassign" in permissionSet,
+                canManage = "gestao_faxinas_manage" in permissionSet
+            )
+        } catch (e: Exception) {
+            Log.e("CleaningRepo", "Error fetching all permissions", e)
+            com.riohhost.app.data.models.CleaningPermissions()
         }
     }
 }

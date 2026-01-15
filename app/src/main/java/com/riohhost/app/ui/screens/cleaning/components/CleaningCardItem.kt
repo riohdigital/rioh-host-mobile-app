@@ -29,20 +29,13 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CleaningCardItem(
     cleaning: ReservationWithCleanerInfo,
-    cleaners: List<CleaningCleanerProfile>,
-    onAssign: (String) -> Unit, // cleanerId
-    onUnassign: () -> Unit,
-    onToggleStatus: () -> Unit,
-    canAssign: Boolean,
-    canReassign: Boolean,
-    canManage: Boolean
+    onClick: () -> Unit
 ) {
-    var showAssignDialog by remember { mutableStateOf(false) }
-    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -126,13 +119,12 @@ fun CleaningCardItem(
 
             Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-            // Cleaner Assignment Section
+            // Cleaner Assignment Section (Display Only)
             if (cleaning.cleaner_user_id != null && cleaning.cleaner_info != null) {
                 // Cleaner Assigned
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
                         Text(
@@ -145,24 +137,6 @@ fun CleaningCardItem(
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
-                    }
-                    
-                    Row {
-                        if (canReassign) {
-                            IconButton(onClick = onUnassign) {
-                                Icon(Icons.Default.Delete, contentDescription = "Remover", tint = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                        if (canManage) {
-                            FilledTonalButton(
-                                onClick = onToggleStatus,
-                                colors = ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = if (cleaning.cleaning_status == "Realizada") MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primaryContainer
-                                )
-                            ) {
-                                Text(if (cleaning.cleaning_status == "Realizada") "Reabrir" else "Concluir")
-                            }
-                        }
                     }
                 }
             } else {
@@ -179,26 +153,11 @@ fun CleaningCardItem(
                         color = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.weight(1f)
                     )
-                    
-                    if (canAssign) {
-                        Button(onClick = { showAssignDialog = true }) {
-                            Text("Atribuir")
-                        }
-                    }
                 }
             }
         }
     }
 
-    if (showAssignDialog) {
-        AssignCleanerDialog(
-            cleaners = cleaners,
-            onDismiss = { showAssignDialog = false },
-            onAssign = { cleanerId ->
-                onAssign(cleanerId)
-                showAssignDialog = false
-            }
-        )
     }
 }
 
@@ -220,44 +179,7 @@ fun DetailRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Strin
     }
 }
 
-@Composable
-fun AssignCleanerDialog(
-    cleaners: List<CleaningCleanerProfile>,
-    onDismiss: () -> Unit,
-    onAssign: (String) -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Atribuir Faxineira") },
-        text = {
-            Column {
-                cleaners.forEach { cleaner ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { cleaner.user_id?.let { onAssign(it) } }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(cleaner.full_name ?: "Sem Nome")
-                    }
-                    Divider()
-                }
-                if (cleaners.isEmpty()) {
-                    Text("Nenhuma faxineira disponível para esta propriedade.", color = MaterialTheme.colorScheme.outline)
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
+// AssignCleanerDialog removed (moved to bottom sheet)
 
 fun isUrgent(cleaning: ReservationWithCleanerInfo): Boolean {
     if (cleaning.check_out_date == null) return false

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.riohhost.app.data.models.CleaningCleanerProfile
+import com.riohhost.app.data.models.CleaningPermissions
 import android.util.Log
 import java.time.LocalDate
 
@@ -22,6 +23,18 @@ class CleaningManagementViewModel(
 
     private val _uiState = MutableStateFlow(CleaningUiState())
     val uiState: StateFlow<CleaningUiState> = _uiState.asStateFlow()
+
+    private val _selectedCleaning = MutableStateFlow<ReservationWithCleanerInfo?>(null)
+    val selectedCleaning: StateFlow<ReservationWithCleanerInfo?> = _selectedCleaning.asStateFlow()
+
+    private val _showBottomSheet = MutableStateFlow(false)
+    val showBottomSheet: StateFlow<Boolean> = _showBottomSheet.asStateFlow()
+
+    private val _cleaningPermissions = MutableStateFlow(CleaningPermissions())
+    val cleaningPermissions: StateFlow<CleaningPermissions> = _cleaningPermissions.asStateFlow()
+
+    private val _propertyCleaners = MutableStateFlow<List<CleaningCleanerProfile>>(emptyList())
+    val propertyCleaners: StateFlow<List<CleaningCleanerProfile>> = _propertyCleaners.asStateFlow()
 
     init {
         loadData()
@@ -73,17 +86,93 @@ class CleaningManagementViewModel(
 
     private fun checkPermissions() {
         viewModelScope.launch {
-            val canAssign = repository.hasPermission("gestao_faxinas_assign")
-            val canReassign = repository.hasPermission("gestao_faxinas_reassign")
-            val canManage = repository.hasPermission("gestao_faxinas_manage")
-            
+            val perms = repository.getCleaningPermissions()
+            _cleaningPermissions.value = perms
+
+            // Keep UI state checks for now if needed for other UI elements not using the new state
             _uiState.update { 
                 it.copy(
-                    canAssign = canAssign,
-                    canReassign = canReassign,
-                    canManageStatus = canManage
+                    canAssign = perms.canAssign,
+                    canReassign = perms.canReassign,
+                    canManageStatus = perms.canManage
                 ) 
             }
+        }
+    }
+
+    fun onCleaningCardClick(cleaning: ReservationWithCleanerInfo) {
+        _selectedCleaning.value = cleaning
+        _showBottomSheet.value = true
+        
+        // Fetch cleaners for this property
+        viewModelScope.launch {
+            if (cleaning.property_id != null) {
+               _propertyCleaners.value = repository.getPropertyCleanersForUser(cleaning.property_id)
+            } else {
+               _propertyCleaners.value = emptyList()
+            }
+        }
+    }
+
+    fun onDismissBottomSheet() {
+        _showBottomSheet.value = false
+        _selectedCleaning.value = null
+    }
+
+    // New Action Wrappers for the Bottom Sheet
+    fun assignCleanerToSelected(cleanerId: String) {
+        val reservationId = _selectedCleaning.value?.id ?: return
+        viewModelScope.launch {
+             _uiState.update { it.copy(isLoading = true) }
+             val result = repository.assignCleaning(reservationId, cleanerId)
+             if (result.isSuccess) {
+                 onDismissBottomSheet()
+                 loadData()
+             } else {
+                 _uiState.update { it.copy(isLoading = false, errorMessage = result.exceptionOrNull()?.message) }
+             }
+        }
+    }
+
+    fun unassignCleanerFromSelected() {
+        val reservationId = _selectedCleaning.value?.id ?: return
+         viewModelScope.launch {
+             _uiState.update { it.copy(isLoading = true) }
+             val result = repository.unassignCleaning(reservationId)
+             if (result.isSuccess) {
+                 onDismissBottomSheet()
+                 loadData()
+             } else {
+                 _uiState.update { it.copy(isLoading = false, errorMessage = result.exceptionOrNull()?.message) }
+             }
+        }
+    }
+
+    fun reassignCleanerForSelected(newCleanerId: String) {
+        val reservationId = _selectedCleaning.value?.id ?: return
+         viewModelScope.launch {
+             _uiState.update { it.copy(isLoading = true) }
+             val result = repository.reassignCleaning(reservationId, newCleanerId)
+             if (result.isSuccess) {
+                 onDismissBottomSheet()
+                 loadData()
+             } else {
+                 _uiState.update { it.copy(isLoading = false, errorMessage = result.exceptionOrNull()?.message) }
+             }
+        }
+    }
+
+    fun toggleStatusForSelected() {
+        val reservationId = _selectedCleaning.value?.id ?: return
+         viewModelScope.launch {
+             _uiState.update { it.copy(isLoading = true) }
+             val result = repository.toggleCleaningStatus(reservationId)
+             if (result.isSuccess) {
+                 onDismissBottomSheet()
+                 loadData()
+             } else {
+                 _uiState.update { it.copy(isLoading = false, errorMessage = result.exceptionOrNull()?.message) }
+             }
         }
     }
 

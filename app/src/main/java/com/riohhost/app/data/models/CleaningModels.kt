@@ -73,3 +73,9 @@ data class CleanerStats(
     val pending: Int,
     val completed: Int
 )
+
+data class CleaningPermissions(
+    val canAssign: Boolean = false,
+    val canReassign: Boolean = false,
+    val canManage: Boolean = false
+)
