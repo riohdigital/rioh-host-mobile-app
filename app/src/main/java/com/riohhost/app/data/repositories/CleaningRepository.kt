@@ -29,7 +29,7 @@ class CleaningRepository {
                     propertyIds?.forEach { add(it) }
                 }
             }
-        ).decodeList().also { println("DEBUG: getAllCleanerReservations result size: ${it.size}") }
+        ).decodeList<ReservationWithCleanerInfo>().also { println("DEBUG: getAllCleanerReservations result size: ${it.size}") }
     }
 
     suspend fun getAllAvailableReservations(
@@ -46,7 +46,7 @@ class CleaningRepository {
                     propertyIds?.forEach { add(it) }
                 }
             }
-        ).decodeList().also { println("DEBUG: getAllAvailableReservations result size: ${it.size}") }
+        ).decodeList<ReservationWithCleanerInfo>().also { println("DEBUG: getAllAvailableReservations result size: ${it.size}") }
     }
 
     suspend fun getCleanersForProperties(
@@ -59,7 +59,7 @@ class CleaningRepository {
                     propertyIds?.forEach { add(it) }
                 }
             }
-        ).decodeList()
+        ).decodeList<CleaningCleanerProfile>()
     }
 
     suspend fun getPropertyCleanersForUser(
