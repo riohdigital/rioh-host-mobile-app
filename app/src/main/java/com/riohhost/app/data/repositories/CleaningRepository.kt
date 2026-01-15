@@ -2,173 +2,169 @@ package com.riohhost.app.data.repositories
 
 import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.CleanerProfile
-import com.riohhost.app.data.models.CleaningReservation
+import com.riohhost.app.data.models.ReservationWithCleanerInfo
+import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 
 class CleaningRepository {
     private val supabase = SupabaseClient.client
 
-    /**
-     * Busca todas as faxinas com cleaner atribuído
-     * Requer role: master, owner, ou permissão gestao_faxinas_view
-     */
     suspend fun getAllCleanerReservations(
-        startDate: String? = null,
-        endDate: String? = null,
-        propertyIds: List<String>? = null
-    ): Result<List<CleaningReservation>> {
+        startDate: String,
+        endDate: String,
+        propertyIds: List<String>?
+    ): List<ReservationWithCleanerInfo> {
         return try {
-            val params = buildMap<String, Any> {
-                startDate?.let { put("start_date", it) }
-                endDate?.let { put("end_date", it) }
-                propertyIds?.let { put("property_ids", it) }
-            }
-            
-            val result = supabase.postgrest.rpc(
+            supabase.postgrest.rpc(
                 "fn_get_all_cleaner_reservations",
-                params
-            ).decodeList<CleaningReservation>()
-            
-            android.util.Log.d("CleaningRepo", "Encontradas ${result.size} faxinas atribuídas")
-            Result.success(result)
+                mapOf(
+                    "start_date" to startDate,
+                    "end_date" to endDate,
+                    "property_ids" to propertyIds
+                )
+            ).decodeList()
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao buscar faxinas: ${e.message}", e)
-            Result.failure(e)
+            println("CleaningRepo: Error fetching cleaner reservations: ${e.message}")
+            emptyList()
         }
     }
 
-    /**
-     * Busca faxinas disponíveis (sem cleaner atribuído)
-     */
-    suspend fun getAvailableReservations(
-        startDate: String? = null,
-        endDate: String? = null,
-        propertyIds: List<String>? = null
-    ): Result<List<CleaningReservation>> {
+    suspend fun getAllAvailableReservations(
+        startDate: String,
+        endDate: String,
+        propertyIds: List<String>?
+    ): List<ReservationWithCleanerInfo> {
         return try {
-            val params = buildMap<String, Any> {
-                startDate?.let { put("start_date", it) }
-                endDate?.let { put("end_date", it) }
-                propertyIds?.let { put("property_ids", it) }
-            }
-            
-            val result = supabase.postgrest.rpc(
+            supabase.postgrest.rpc(
                 "fn_get_all_available_reservations",
-                params
-            ).decodeList<CleaningReservation>()
-            
-            android.util.Log.d("CleaningRepo", "Encontradas ${result.size} faxinas disponíveis")
-            Result.success(result)
+                mapOf(
+                    "start_date" to startDate,
+                    "end_date" to endDate,
+                    "property_ids" to propertyIds
+                )
+            ).decodeList()
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao buscar faxinas disponíveis: ${e.message}", e)
-            Result.failure(e)
+            println("CleaningRepo: Error fetching available reservations: ${e.message}")
+            emptyList()
         }
     }
 
-    /**
-     * Busca faxineiras disponíveis para as propriedades
-     */
     suspend fun getCleanersForProperties(
-        propertyIds: List<String>? = null
-    ): Result<List<CleanerProfile>> {
+        propertyIds: List<String>?
+    ): List<CleanerProfile> {
         return try {
-            val params = propertyIds?.let { mapOf("property_ids" to it) } ?: emptyMap<String, Any>()
-            
-            val result = supabase.postgrest.rpc(
+             supabase.postgrest.rpc(
                 "fn_get_cleaners_for_properties",
-                params
-            ).decodeList<CleanerProfile>()
-            
-            android.util.Log.d("CleaningRepo", "Encontradas ${result.size} faxineiras")
-            Result.success(result)
+                mapOf("property_ids" to propertyIds)
+            ).decodeList()
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao buscar faxineiras: ${e.message}", e)
-            Result.failure(e)
+            println("CleaningRepo: Error fetching property cleaners: ${e.message}")
+            emptyList()
         }
     }
 
-    /**
-     * Atribui faxineira a uma reserva
-     */
+    suspend fun getPropertyCleanersForUser(
+        propertyId: String
+    ): List<CleanerProfile> {
+        return try {
+            supabase.postgrest.rpc(
+                "fn_get_property_cleaners_for_user",
+                mapOf("p_property_id" to propertyId)
+            ).decodeList()
+        } catch (e: Exception) {
+            println("CleaningRepo: Error fetching cleaners for user property: ${e.message}")
+            emptyList()
+        }
+    }
+
     suspend fun assignCleaning(
         reservationId: String,
         cleanerId: String
-    ): Result<String> {
+    ): Result<Unit> {
         return try {
-            val result = supabase.postgrest.rpc(
+            supabase.postgrest.rpc(
                 "assign_cleaning_with_permissions",
                 mapOf(
                     "reservation_id" to reservationId,
                     "cleaner_id" to cleanerId
                 )
-            ).decodeAs<String>()
-            
-            android.util.Log.d("CleaningRepo", "Faxina atribuída: $result")
-            Result.success(result)
+            )
+            Result.success(Unit)
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao atribuir faxina: ${e.message}", e)
+            println("CleaningRepo: Error assigning cleaning: ${e.message}")
             Result.failure(e)
         }
     }
 
-    /**
-     * Reatribui faxineira (muda de uma para outra)
-     */
     suspend fun reassignCleaning(
         reservationId: String,
         newCleanerId: String
-    ): Result<String> {
+    ): Result<Unit> {
         return try {
-            val result = supabase.postgrest.rpc(
+            supabase.postgrest.rpc(
                 "reassign_cleaning_with_permissions",
                 mapOf(
                     "reservation_id" to reservationId,
                     "new_cleaner_id" to newCleanerId
                 )
-            ).decodeAs<String>()
-            
-            android.util.Log.d("CleaningRepo", "Faxina reatribuída: $result")
-            Result.success(result)
+            )
+            Result.success(Unit)
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao reatribuir faxina: ${e.message}", e)
+            println("CleaningRepo: Error reassigning cleaning: ${e.message}")
             Result.failure(e)
         }
     }
 
-    /**
-     * Remove faxineira de uma reserva
-     */
-    suspend fun unassignCleaning(reservationId: String): Result<String> {
+    suspend fun unassignCleaning(
+        reservationId: String
+    ): Result<Unit> {
         return try {
-            val result = supabase.postgrest.rpc(
+            supabase.postgrest.rpc(
                 "unassign_cleaning_with_permissions",
                 mapOf("reservation_id" to reservationId)
-            ).decodeAs<String>()
-            
-            android.util.Log.d("CleaningRepo", "Faxineira removida: $result")
-            Result.success(result)
+            )
+            Result.success(Unit)
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao remover faxineira: ${e.message}", e)
+            println("CleaningRepo: Error unassigning cleaning: ${e.message}")
             Result.failure(e)
         }
     }
 
-    /**
-     * Alterna status: Pendente ↔ Realizada
-     */
-    suspend fun toggleCleaningStatus(reservationId: String): Result<String> {
+    suspend fun toggleCleaningStatus(
+        reservationId: String
+    ): Result<String> {
         return try {
             val result = supabase.postgrest.rpc(
                 "fn_toggle_cleaning_status",
                 mapOf("p_reservation_id" to reservationId)
             ).decodeAs<String>()
-            
-            android.util.Log.d("CleaningRepo", "Status alterado: $result")
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("CleaningRepo", "Erro ao alterar status: ${e.message}", e)
+            println("CleaningRepo: Error toggling status: ${e.message}")
             Result.failure(e)
+        }
+    }
+
+    suspend fun hasPermission(permissionType: String): Boolean {
+        return try {
+            val userId = supabase.auth.currentUserOrNull()?.id ?: return false
+            
+            val result = supabase.postgrest
+                .from("user_permissions")
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                        eq("permission_type", permissionType)
+                        eq("permission_value", true)
+                    }
+                }
+                .decodeSingleOrNull<Map<String, Any>>()
+            
+            result != null
+        } catch (e: Exception) {
+            println("CleaningRepo: Permission check failed: ${e.message}")
+            false
         }
     }
 }
