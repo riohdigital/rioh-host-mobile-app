@@ -5,42 +5,38 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ReservationWithCleanerInfo(
     val id: String,
-    val property_id: String,
-    val platform: String,
-    val reservation_code: String,
-    val guest_name: String?,
-    val guest_phone: String?,
-    val number_of_guests: Int?,
-    val check_in_date: String? = null,           // "2026-01-15"
-    val check_out_date: String? = null,          // "2026-01-18"
-    val checkin_time: String?,           // "15:00"
-    val checkout_time: String?,          // "11:00"
-    val total_revenue: Double?,
-    val base_revenue: Double?,
-    val commission_amount: Double?,
-    val net_revenue: Double?,
-    val payment_status: String?,
-    val reservation_status: String? = null,      // "Confirmada", "Cancelada", "Finalizada"
-    val is_communicated: Boolean?,
-    val receipt_sent: Boolean?,
+    val property_id: String? = null,
+    val platform: String? = null,
+    val reservation_code: String? = null,
+    val check_in_date: String? = null,
+    val check_out_date: String? = null,
+    val payment_date: String? = null,
+    val total_revenue: Double? = null,
+    val payment_status: String? = null,
+    val reservation_status: String? = null,
     val created_at: String? = null,
+    val guest_name: String? = null,
+    val number_of_guests: Int? = null,
+    val base_revenue: Double? = null,
+    val commission_amount: Double? = null,
+    val net_revenue: Double? = null,
+    val checkin_time: String? = null,
+    val checkout_time: String? = null,
+    val is_communicated: Boolean? = null,
+    val receipt_sent: Boolean? = null,
+    val guest_phone: String? = null,
+    val cleaner_user_id: String? = null,
+    val cleaning_payment_status: String? = null,
+    val cleaning_rating: Int? = null,
+    val cleaning_notes: String? = null,
+    val cleaning_fee: Double? = null,
+    val cleaning_allocation: String? = null,
+    val cleaning_status: String? = null,
+    val next_check_in_date: String? = null,
+    val next_checkin_time: String? = null,
     
-    // Campos de Faxina (MAIS IMPORTANTES)
-    val cleaner_user_id: String?,        // UUID da faxineira atribuida
-    val cleaning_status: String?,        // "Pendente", "Realizada", "Em Andamento"
-    val cleaning_payment_status: String?,// "Pagamento no Proximo Ciclo", "Pago"
-    val cleaning_rating: Int?,           // 1-5 estrelas
-    val cleaning_notes: String?,         // Notas sobre a faxina
-    val cleaning_fee: Double?,           // Valor pago a faxineira
-    val cleaning_allocation: String?,    // Alocacao de custos
-    
-    // Proximo check-in (para urgencia)
-    val next_check_in_date: String?,
-    val next_checkin_time: String?,
-    
-    // Objetos relacionados (retornados pela RPC)
-    val properties: PropertyInfo?,
-    val cleaner_info: CleaningCleanerInfo?
+    val properties: PropertyInfo? = null,
+    val cleaner_info: CleaningCleanerInfo? = null
 )
 
 @Serializable
@@ -48,7 +44,9 @@ data class PropertyInfo(
     val id: String? = null,
     val name: String? = null,
     val address: String? = null,
-    val default_checkin_time: String?
+    val nickname: String? = null,
+    val default_checkin_time: String? = null,
+    val default_checkout_time: String? = null
 )
 
 @Serializable
