@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.riohhost.app.data.models.CleaningCleanerProfile
+import java.time.LocalDate
 
 class CleaningManagementViewModel(
     private val repository: CleaningRepository = CleaningRepository()
@@ -32,7 +33,7 @@ class CleaningManagementViewModel(
             try {
                 // Fetch for current month + next month for context, or a wider range
                 // For now, let's hardcode a reasonable range or calculate it dynamically
-                val today = java.time.LocalDate.now()
+                val today = LocalDate.now()
                 val startDate = today.minusDays(7).toString() // 1 week back
                 val endDate = today.plusMonths(2).toString()  // 2 months forward
 
@@ -44,6 +45,10 @@ class CleaningManagementViewModel(
                 val assigned = assignedDeferred
                 val available = availableDeferred
                 val cleaners = cleanersDeferred
+
+                println("DEBUG: Assigned Cleanings: ${assigned.size}")
+                println("DEBUG: Available Cleanings: ${available.size}")
+                println("DEBUG: Cleaners: ${cleaners.size}")
 
                 val stats = calculateCleanerStats(assigned)
 
@@ -58,6 +63,8 @@ class CleaningManagementViewModel(
                 }
                 applyFilters() // Apply initial filters to set displayedCleanings
             } catch (e: Exception) {
+                println("DEBUG: Error in loadData: ${e.message}")
+                e.printStackTrace()
                 _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
