@@ -4,6 +4,7 @@ import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.Reservation
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 
 class ReservationRepository {
     private val supabase = SupabaseClient.client
@@ -298,7 +299,7 @@ class ReservationRepository {
                     lte("check_out_date", threeDaysFromNow)
                     isIn("reservation_status", listOf("Confirmada", "Em Andamento"))
                     // Using filter for null check
-                    eq("cleaner_user_id", null)
+                    filter("cleaner_user_id", FilterOperator.IS, null)
                 }
             }.countOrNull() ?: 0
 
