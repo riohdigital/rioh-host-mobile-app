@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import com.riohhost.app.data.models.Reservation
 import com.riohhost.app.utils.CurrencyUtils
 import com.riohhost.app.utils.DateUtils
@@ -145,7 +146,7 @@ fun ReservationDetailScreen(
                 item {
                      DetailSection(title = "FINANCEIRO") {
                         FinancialRow("Valor Total", reservation.totalRevenue, isTotal = true)
-                        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                        Divider(Modifier.padding(vertical = 4.dp))
                         FinancialRow("Taxa de Limpeza", reservation.cleaningFee)
                         FinancialRow("Receita Base", reservation.baseRevenue)
                         FinancialRow("Comissão", reservation.commissionAmount)
@@ -281,7 +282,7 @@ class ReservationDetailViewModel(
     
     // Maintain backward compatibility for existing observers if any, though we should migrate them in the UI
     @Deprecated("Use uiState.reservation instead")
-    val reservation = kotlinx.coroutines.flow.map { _uiState.value.reservation }
+    val reservation = _uiState.map { it.reservation }
 
     fun loadReservation(id: String) {
         viewModelScope.launch {
