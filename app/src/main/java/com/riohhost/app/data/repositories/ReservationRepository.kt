@@ -250,7 +250,7 @@ class ReservationRepository {
             val today = java.time.LocalDate.now().toString()
             
             // Check-ins today
-            val checkins = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+            val checkins = supabase.postgrest.from("reservations").select(count = io.github.jan.supabase.postgrest.query.Count.EXACT, head = true) {
                 filter {
                     eq("check_in_date", today)
                     eq("reservation_status", "Confirmada")
@@ -258,7 +258,7 @@ class ReservationRepository {
             }.countOrNull() ?: 0
 
             // Check-outs today
-            val checkouts = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+            val checkouts = supabase.postgrest.from("reservations").select(count = io.github.jan.supabase.postgrest.query.Count.EXACT, head = true) {
                 filter {
                     eq("check_out_date", today)
                     isIn("reservation_status", listOf("Confirmada", "Em Andamento"))
@@ -266,7 +266,7 @@ class ReservationRepository {
             }.countOrNull() ?: 0
 
             // Cleanings today (based on checkout)
-            val cleanings = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+            val cleanings = supabase.postgrest.from("reservations").select(count = io.github.jan.supabase.postgrest.query.Count.EXACT, head = true) {
                 filter {
                     eq("check_out_date", today)
                     neq("cleaning_status", "Realizada")
@@ -288,12 +288,13 @@ class ReservationRepository {
             
             // 1. Reserves without cleaner (Checkout in next 3 days)
             val threeDaysFromNow = today.plusDays(3).toString()
-            val noCleanerCount = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+            val noCleanerCount = supabase.postgrest.from("reservations").select(count = io.github.jan.supabase.postgrest.query.Count.EXACT, head = true) {
                 filter {
                     gte("check_out_date", today.toString())
                     lte("check_out_date", threeDaysFromNow)
                     isIn("reservation_status", listOf("Confirmada", "Em Andamento"))
-                    isExact("cleaner_user_id", null)
+                    // Using eq for null check
+                    eq("cleaner_user_id", null)
                 }
             }.countOrNull() ?: 0
 
@@ -308,7 +309,7 @@ class ReservationRepository {
 
             // 2. Guests not communicated (Check-in in 24h)
             val tomorrow = today.plusDays(1).toString()
-            val notCommunicatedCount = supabase.postgrest.from("reservations").select(io.github.jan.supabase.postgrest.query.Count.EXACT) {
+            val notCommunicatedCount = supabase.postgrest.from("reservations").select(count = io.github.jan.supabase.postgrest.query.Count.EXACT, head = true) {
                 filter {
                     gte("check_in_date", today.toString())
                     lte("check_in_date", tomorrow)

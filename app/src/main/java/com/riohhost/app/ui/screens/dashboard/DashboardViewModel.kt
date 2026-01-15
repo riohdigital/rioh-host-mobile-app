@@ -245,13 +245,14 @@ class DashboardViewModel : ViewModel() {
      * Refresh data using current filters or defaults.
      */
     fun refresh() {
-        if (globalFilters != null) {
-            val dateRange = globalFilters.dateRangeStrings.value
+        val filters = globalFilters
+        if (filters != null) {
+            val dateRange = filters.dateRangeStrings.value
             loadDashboardData(
                 startDate = dateRange.first,
                 endDate = dateRange.second,
-                propertyIds = globalFilters.getPropertyFilter(),
-                platform = globalFilters.getPlatformFilter()
+                propertyIds = filters.getPropertyFilter(),
+                platform = filters.getPlatformFilter()
             )
         } else {
             // Default to current year
