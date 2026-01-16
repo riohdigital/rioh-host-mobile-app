@@ -80,7 +80,8 @@ class DashboardViewModel : ViewModel() {
                 
                 // Fetch all data in parallel
                 var properties: List<Property> = emptyList()
-                var reservations: List<Reservation> = emptyList()
+                var financialReservations: List<Reservation> = emptyList() // For Revenue, Tickets, Counts
+                var occupancyReservations: List<Reservation> = emptyList() // For Occupancy Rate (Overlap)
                 var expenses: List<com.riohhost.app.data.models.Expense> = emptyList()
                 var todaysEvents: com.riohhost.app.data.models.TodaysEvents = com.riohhost.app.data.models.TodaysEvents()
                 var alerts: List<com.riohhost.app.data.models.OperationalAlert> = emptyList()
@@ -88,7 +89,21 @@ class DashboardViewModel : ViewModel() {
                 val jobs = listOf(
                     launch { properties = propertyRepository.getProperties() },
                     launch { 
-                        reservations = reservationRepository.getReservationsFiltered(
+                        // 1. Financial Data: Uses strict platform rules (Check-in vs Checkout)
+                        financialReservations = reservationRepository.fetchReservationsWithPlatformRules(
+                            startDate = startDate,
+                            endDate = endDate,
+                            propertyIds = propertyIds,
+                            platform = platform
+                        )
+                    },
+                    launch {
+                        // 2. Occupancy Data: Uses Overlap Logic (existing getReservationsFiltered)
+                        // Only fetch if needed (e.g., skip if platform filter allows it, usually occupancy is calc for all)
+                        // But wait, occupancy calculation usually ignores platform filter for "total potential"?
+                        // The user spec implies occupancy should respect filters.
+                        // "getReservationsFiltered" uses check_out >= start AND check_in <= end (Overlap)
+                        occupancyReservations = reservationRepository.getReservationsFiltered(
                             startDate = startDate,
                             endDate = endDate,
                             propertyIds = propertyIds,
@@ -107,11 +122,12 @@ class DashboardViewModel : ViewModel() {
                 )
                 jobs.forEach { it.join() }
                 
-                android.util.Log.d("DashboardVM", "Dados: ${properties.size} props, ${reservations.size} reservas, ${expenses.size} despesas")
+                android.util.Log.d("DashboardVM", "Dados: ${properties.size} props, ${financialReservations.size} reservas (Financ), ${occupancyReservations.size} reservas (Ocup), ${expenses.size} despesas")
                 
                 // Calculate KPIs
                 val kpis = calculateKpis(
-                    reservations = reservations,
+                    financialReservations = financialReservations,
+                    occupancyReservations = occupancyReservations,
                     expenses = expenses,
                     properties = properties,
                     startDate = startDate,
@@ -123,7 +139,7 @@ class DashboardViewModel : ViewModel() {
                 _uiState.value = DashboardUiState.Success(
                     kpis = kpis,
                     properties = properties,
-                    reservations = reservations,
+                    reservations = financialReservations, // Show financial list in UI lists if any
                     todaysEvents = todaysEvents,
                     alerts = alerts
                 )
@@ -135,16 +151,17 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun calculateKpis(
-        reservations: List<Reservation>,
+        financialReservations: List<Reservation>,
+        occupancyReservations: List<Reservation>,
         expenses: List<com.riohhost.app.data.models.Expense>,
         properties: List<Property>,
         startDate: String,
         endDate: String
     ): DashboardKpis {
-        // Revenue calculations
-        val totalRevenue = reservations.sumOf { it.totalRevenue ?: 0.0 }
-        val netRevenue = reservations.sumOf { it.netRevenue ?: 0.0 }
-        val totalCommission = reservations.sumOf { it.commissionAmount ?: 0.0 }
+        // Revenue calculations (Use Financial List)
+        val totalRevenue = financialReservations.sumOf { it.totalRevenue ?: 0.0 }
+        val netRevenue = financialReservations.sumOf { it.netRevenue ?: 0.0 }
+        val totalCommission = financialReservations.sumOf { it.commissionAmount ?: 0.0 }
         
         // Expense calculations
         val totalExpenses = expenses.sumOf { it.amount ?: 0.0 }
@@ -158,26 +175,28 @@ class DashboardViewModel : ViewModel() {
             it.status?.equals("active", ignoreCase = true) == true
         }
         
-        // Occupancy rate calculation
+        // Occupancy rate calculation (Use Occupancy List)
         val occupancyRate = calculateOccupancyRate(
-            reservations = reservations,
+            reservations = occupancyReservations,
             startDate = startDate,
             endDate = endDate,
             propertiesCount = max(1, activePropertiesCount)
         )
         
-        // Revenue by platform
-        val revenueByPlatform = reservations
+        // Revenue by platform (Use Financial List)
+        val revenueByPlatform = financialReservations
             .groupBy { it.platform ?: "Direto" }
             .mapValues { (_, reservations) -> 
                 reservations.sumOf { it.totalRevenue ?: 0.0 } 
             }
         
-        // Avg Ticket
-        val avgTicket = if (reservations.isNotEmpty()) totalRevenue / reservations.size else 0.0
+        // Avg Ticket (Use Financial List)
+        val totalReservationsCount = financialReservations.size
+        val avgTicket = if (totalReservationsCount > 0) totalRevenue / totalReservationsCount else 0.0
         
-        // Avg Nightly Revenue
-        val totalNights = reservations.sumOf { res ->
+        // Avg Nightly Revenue (Use Financial List: Revenue / Total Nights of these reservations)
+        // Note: Spec says "Total Nights = Sum of (checkout - checkin) of each reservation"
+        val totalNights = financialReservations.sumOf { res ->
             val checkIn = res.checkInDate?.let { try { LocalDate.parse(it) } catch(e: Exception) { null } }
             val checkOut = res.checkOutDate?.let { try { LocalDate.parse(it) } catch(e: Exception) { null } }
             
@@ -197,7 +216,7 @@ class DashboardViewModel : ViewModel() {
             netProfit = netProfit,
             occupancyRate = occupancyRate,
             activeProperties = activePropertiesCount,
-            totalReservations = reservations.size,
+            totalReservations = totalReservationsCount,
             avgTicket = avgTicket,
             avgNightlyRevenue = avgNightlyRevenue,
             revenueByPlatform = revenueByPlatform
@@ -266,6 +285,9 @@ class DashboardViewModel : ViewModel() {
     }
 }
 
+/**
+ * All KPIs displayed on the dashboard.
+ */
 /**
  * All KPIs displayed on the dashboard.
  */

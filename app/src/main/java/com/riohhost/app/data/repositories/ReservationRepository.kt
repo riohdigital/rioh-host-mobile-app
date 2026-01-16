@@ -118,6 +118,110 @@ class ReservationRepository {
         }
     }
 
+    /**
+     * Busca reservas aplicando regras específicas de data por plataforma para fins FINANCEIROS.
+     * - Airbnb/Direto: Filtra por check_in_date
+     * - Booking.com: Filtra por check_out_date
+     */
+    suspend fun fetchReservationsWithPlatformRules(
+        startDate: String,
+        endDate: String,
+        propertyIds: List<String>? = null,
+        platform: String? = null
+    ): List<Reservation> {
+        return try {
+            android.util.Log.d("ReservationRepo", "Buscando reservas (Financeiro): $startDate a $endDate, platform: $platform")
+            val allReservations = mutableListOf<Reservation>()
+
+            if (platform == null || platform == "all") {
+                // 1. Airbnb/Direto (Check-in)
+                val standardQuery = supabase.postgrest.from("reservations").select {
+                    filter {
+                        gte("check_in_date", startDate)
+                        lte("check_in_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                        // Excluir Booking se estivermos buscando "tudo" (pois Booking será pego na próxima query)
+                        // Mas espera, "platform" pode ser null.
+                        // Vamos fazer explicitamente por plataforma para garantir.
+                        isIn("platform", listOf("Airbnb", "Direto")) 
+                        
+                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                            isIn("property_id", propertyIds)
+                        }
+                    }
+                }.decodeList<Reservation>()
+                allReservations.addAll(standardQuery)
+
+                // 2. Booking.com (Check-out)
+                val bookingQuery = supabase.postgrest.from("reservations").select {
+                    filter {
+                        gte("check_out_date", startDate)
+                        lte("check_out_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                        eq("platform", "Booking.com")
+                        
+                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                            isIn("property_id", propertyIds)
+                        }
+                    }
+                }.decodeList<Reservation>()
+                allReservations.addAll(bookingQuery)
+
+                // 3. Outras ou Null (Assumir Check-in por padrão)
+                 val othersQuery = supabase.postgrest.from("reservations").select {
+                    filter {
+                        gte("check_in_date", startDate)
+                        lte("check_in_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                        // Negar as que já buscamos
+                        not(FilterOperator.IN, "platform", listOf("Airbnb", "Booking.com", "Direto"))
+                        
+                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                            isIn("property_id", propertyIds)
+                        }
+                    }
+                }.decodeList<Reservation>()
+               allReservations.addAll(othersQuery)
+
+            } else if (platform == "Booking.com") {
+                 val bookingQuery = supabase.postgrest.from("reservations").select {
+                    filter {
+                        gte("check_out_date", startDate)
+                        lte("check_out_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                        eq("platform", "Booking.com")
+                        
+                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                           isIn("property_id", propertyIds)
+                        }
+                    }
+                }.decodeList<Reservation>()
+                allReservations.addAll(bookingQuery)
+            } else {
+                // Outra plataforma específica (Airbnb, Direto, etc) -> Check-in
+                val query = supabase.postgrest.from("reservations").select {
+                    filter {
+                        gte("check_in_date", startDate)
+                        lte("check_in_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                        eq("platform", platform)
+                        
+                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                            isIn("property_id", propertyIds)
+                        }
+                    }
+                }.decodeList<Reservation>()
+                allReservations.addAll(query)
+            }
+            
+            android.util.Log.d("ReservationRepo", "Total Financeiro encontrado: ${allReservations.size}")
+            allReservations
+        } catch (e: Exception) {
+            android.util.Log.e("ReservationRepo", "Erro ao buscar reservas financeiras: ${e.message}", e)
+            emptyList()
+        }
+    }
+
     suspend fun getCleanersForProperty(propertyId: String): Result<List<com.riohhost.app.data.models.CleanerInfo>> {
         return try {
             val response = supabase.postgrest
