@@ -3,6 +3,7 @@ package com.riohhost.app.data.repositories
 import com.riohhost.app.data.api.SupabaseClient
 import com.riohhost.app.data.models.CleaningCleanerProfile
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
+import com.riohhost.app.data.models.UserProfile
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
@@ -179,6 +180,30 @@ class CleaningRepository {
             val userId = supabase.auth.currentUserOrNull()?.id 
                 ?: return com.riohhost.app.data.models.CleaningPermissions()
 
+            // 1. Check for specific Role (Owner/Master get full access)
+            try {
+                val profile = supabase.postgrest.from("user_profiles")
+                    .select {
+                        filter { eq("user_id", userId) }
+                    }
+                    .decodeSingleOrNull<UserProfile>()
+
+                if (profile != null) {
+                    val role = profile.role.lowercase()
+                    if (role == "master" || role == "owner") {
+                         Log.d("CleaningRepo", "User is Owner/Master, granting full permissions")
+                         return com.riohhost.app.data.models.CleaningPermissions(
+                             canAssign = true,
+                             canReassign = true,
+                             canManage = true
+                         )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CleaningRepo", "Error fetching user profile for permissions", e)
+            }
+
+            // 2. Granular Permissions Check
             val permissions = supabase.postgrest
                 .from("user_permissions")
                 .select(columns = Columns.list("permission_type")) {
