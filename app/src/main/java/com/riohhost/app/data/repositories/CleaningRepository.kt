@@ -5,8 +5,8 @@ import com.riohhost.app.data.models.CleaningCleanerProfile
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -181,10 +181,10 @@ class CleaningRepository {
 
             val permissions = supabase.postgrest
                 .from("user_permissions")
-                .select {
+                .select(columns = Columns.list("permission_type")) {
                     filter {
                         eq("user_id", userId)
-                        eq("permission_value", true) // Fixed: Matches hasPermission logic
+                        eq("permission_value", true)
                     }
                 }
                 .decodeList<UserPermission>()
