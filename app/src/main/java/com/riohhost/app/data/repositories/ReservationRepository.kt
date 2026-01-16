@@ -134,25 +134,7 @@ class ReservationRepository {
             val allReservations = mutableListOf<Reservation>()
 
             if (platform == null || platform == "all") {
-                // 1. Airbnb/Direto (Check-in)
-                val standardQuery = supabase.postgrest.from("reservations").select {
-                    filter {
-                        gte("check_in_date", startDate)
-                        lte("check_in_date", endDate)
-                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
-                        // Excluir Booking se estivermos buscando "tudo" (pois Booking será pego na próxima query)
-                        // Mas espera, "platform" pode ser null.
-                        // Vamos fazer explicitamente por plataforma para garantir.
-                        isIn("platform", listOf("Airbnb", "Direto")) 
-                        
-                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
-                            isIn("property_id", propertyIds)
-                        }
-                    }
-                }.decodeList<Reservation>()
-                allReservations.addAll(standardQuery)
-
-                // 2. Booking.com (Check-out)
+                // 1. Booking.com (Check-out)
                 val bookingQuery = supabase.postgrest.from("reservations").select {
                     filter {
                         gte("check_out_date", startDate)
@@ -167,21 +149,36 @@ class ReservationRepository {
                 }.decodeList<Reservation>()
                 allReservations.addAll(bookingQuery)
 
-                // 3. Outras ou Null (Assumir Check-in por padrão)
-                 val othersQuery = supabase.postgrest.from("reservations").select {
+                // 2. Others (Non-Booking) -> Check-in
+                // 2a. Platforms != Booking.com
+                val nonBookingQuery = supabase.postgrest.from("reservations").select {
                     filter {
                         gte("check_in_date", startDate)
                         lte("check_in_date", endDate)
                         isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
-                        // Negar as que já buscamos
-                        not(FilterOperator.IN, "platform", listOf("Airbnb", "Booking.com", "Direto"))
+                        neq("platform", "Booking.com")
                         
                         if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
                             isIn("property_id", propertyIds)
                         }
                     }
                 }.decodeList<Reservation>()
-               allReservations.addAll(othersQuery)
+                allReservations.addAll(nonBookingQuery)
+
+                // 2b. Platform IS NULL (defaults to standard/check-in rules)
+                val nullPlatformQuery = supabase.postgrest.from("reservations").select {
+                    filter {
+                        gte("check_in_date", startDate)
+                        lte("check_in_date", endDate)
+                        isIn("reservation_status", listOf("Confirmada", "Em Andamento", "Finalizada"))
+                        filter("platform", FilterOperator.IS, null)
+                        
+                        if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                            isIn("property_id", propertyIds)
+                        }
+                    }
+                }.decodeList<Reservation>()
+                allReservations.addAll(nullPlatformQuery)
 
             } else if (platform == "Booking.com") {
                  val bookingQuery = supabase.postgrest.from("reservations").select {
@@ -198,7 +195,7 @@ class ReservationRepository {
                 }.decodeList<Reservation>()
                 allReservations.addAll(bookingQuery)
             } else {
-                // Outra plataforma específica (Airbnb, Direto, etc) -> Check-in
+                // Specific platform (Airbnb, Direto, etc) -> Check-in
                 val query = supabase.postgrest.from("reservations").select {
                     filter {
                         gte("check_in_date", startDate)
