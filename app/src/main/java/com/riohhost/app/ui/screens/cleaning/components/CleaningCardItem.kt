@@ -157,8 +157,6 @@ fun CleaningCardItem(
             }
         }
     }
-
-    }
 }
 
 @Composable

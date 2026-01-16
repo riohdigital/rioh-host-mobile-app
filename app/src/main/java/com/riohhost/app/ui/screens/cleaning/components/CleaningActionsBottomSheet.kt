@@ -14,8 +14,8 @@ import androidx.compose.ui.unit.dp
 import com.riohhost.app.data.models.CleaningPermissions
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
 import com.riohhost.app.data.models.CleaningCleanerProfile
-import com.riohhost.app.ui.theme.RiohRed
-import com.riohhost.app.ui.theme.RiohPrimary
+import com.riohhost.app.ui.theme.RedError
+import com.riohhost.app.ui.theme.PurplePrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +60,7 @@ fun CleaningActionsBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Checkout: \${cleaning.check_out_date ?: "N/A"}",
+                    text = "Checkout: ${cleaning.check_out_date ?: "N/A"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -86,7 +86,7 @@ fun CleaningActionsBottomSheet(
                     Text(
                         text = "SEM FAXINEIRA ATRIBUÍDA",
                         style = MaterialTheme.typography.labelSmall,
-                        color = RiohRed
+                        color = RedError
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     if (permissions.canAssign) {
@@ -96,7 +96,7 @@ fun CleaningActionsBottomSheet(
                                 showCleanerSelector = true 
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = RiohPrimary)
+                            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -132,7 +132,7 @@ fun CleaningActionsBottomSheet(
                         OutlinedButton(
                             onClick = onUnassign,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = RiohRed)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = RedError)
                         ) {
                             Icon(Icons.Default.PersonRemove, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))

@@ -20,7 +20,8 @@ import com.riohhost.app.ui.screens.cleaning.components.CleaningActionsBottomShee
 import com.riohhost.app.ui.screens.cleaning.components.CleaningCardItem
 import com.riohhost.app.ui.screens.cleaning.components.CleaningStatsScreen
 import com.riohhost.app.ui.screens.cleaning.models.CleaningTab
-import com.riohhost.app.ui.screens.cleaning.models.ReservationWithCleanerInfo
+import com.riohhost.app.data.models.ReservationWithCleanerInfo
+import com.riohhost.app.ui.screens.cleaning.models.CleaningUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
