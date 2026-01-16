@@ -5,6 +5,7 @@ import com.riohhost.app.data.models.CleaningCleanerProfile
 import com.riohhost.app.data.models.ReservationWithCleanerInfo
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -18,9 +19,9 @@ import android.util.Log
 class CleaningRepository {
     private val supabase = SupabaseClient.client
 
-    // Helper for permissions
+    // Helper for permissions (Fixed to match DB schema used in hasPermission)
     @kotlinx.serialization.Serializable
-    private data class UserPermission(val permission_name: String)
+    private data class UserPermission(val permission_type: String)
 
     suspend fun getAllCleanerReservations(
         startDate: String,
@@ -183,12 +184,12 @@ class CleaningRepository {
                 .select {
                     filter {
                         eq("user_id", userId)
-                        eq("is_granted", true)
+                        eq("permission_value", true) // Fixed: Matches hasPermission logic
                     }
                 }
                 .decodeList<UserPermission>()
 
-            val permissionSet = permissions.map { it.permission_name }.toSet()
+            val permissionSet = permissions.map { it.permission_type }.toSet()
 
             com.riohhost.app.data.models.CleaningPermissions(
                 canAssign = "gestao_faxinas_assign" in permissionSet,
