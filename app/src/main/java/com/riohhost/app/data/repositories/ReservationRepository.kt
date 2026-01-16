@@ -386,21 +386,30 @@ class ReservationRepository {
         }
     }
 
-    suspend fun getOperationalAlerts(): List<com.riohhost.app.data.models.OperationalAlert> {
+    suspend fun getOperationalAlerts(
+        startDate: String,
+        endDate: String,
+        propertyIds: List<String>? = null,
+        platform: String? = null
+    ): List<com.riohhost.app.data.models.OperationalAlert> {
         val alerts = mutableListOf<com.riohhost.app.data.models.OperationalAlert>()
         try {
-            val today = java.time.LocalDate.now()
-            
-            // 1. Reserves without cleaner (Checkout in next 3 days)
-            val threeDaysFromNow = today.plusDays(3).toString()
+            // 1. Reserves without cleaner (Checkout in range)
             val noCleanerCount = supabase.postgrest.from("reservations").select {
                 count(io.github.jan.supabase.postgrest.query.Count.EXACT)
                 filter {
-                    gte("check_out_date", today.toString())
-                    lte("check_out_date", threeDaysFromNow)
+                    gte("check_out_date", startDate)
+                    lte("check_out_date", endDate)
                     isIn("reservation_status", listOf("Confirmada", "Em Andamento"))
                     // Using filter for null check
                     filter("cleaner_user_id", FilterOperator.IS, null)
+                    
+                    if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                        isIn("property_id", propertyIds)
+                    }
+                    if (!platform.isNullOrEmpty() && platform != "all") {
+                        eq("platform", platform)
+                    }
                 }
             }.countOrNull() ?: 0
 
@@ -413,15 +422,21 @@ class ReservationRepository {
                 ))
             }
 
-            // 2. Guests not communicated (Check-in in 24h)
-            val tomorrow = today.plusDays(1).toString()
+            // 2. Guests not communicated (Check-in in range)
             val notCommunicatedCount = supabase.postgrest.from("reservations").select {
                 count(io.github.jan.supabase.postgrest.query.Count.EXACT)
                 filter {
-                    gte("check_in_date", today.toString())
-                    lte("check_in_date", tomorrow)
+                    gte("check_in_date", startDate)
+                    lte("check_in_date", endDate)
                     eq("reservation_status", "Confirmada")
                     eq("is_communicated", false)
+                    
+                    if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                        isIn("property_id", propertyIds)
+                    }
+                    if (!platform.isNullOrEmpty() && platform != "all") {
+                        eq("platform", platform)
+                    }
                 }
             }.countOrNull() ?: 0
 
@@ -429,16 +444,25 @@ class ReservationRepository {
                 alerts.add(com.riohhost.app.data.models.OperationalAlert(
                     type = "no_communication",
                     count = notCommunicatedCount.toInt(),
-                    message = "$notCommunicatedCount hóspedes não comunicados (check-in próximo)",
+                    message = "$notCommunicatedCount hóspedes não comunicados",
                     severity = "warning"
                 ))
             }
 
-            // 3. Pending Payments (Total)
+            // 3. Pending Payments (Total in range)
             val pendingPayments = supabase.postgrest.from("reservations").select {
                 filter {
                     eq("payment_status", "Pendente")
                     isIn("reservation_status", listOf("Confirmada", "Finalizada"))
+                    gte("check_in_date", startDate)
+                    lte("check_in_date", endDate)
+                    
+                    if (!propertyIds.isNullOrEmpty() && !propertyIds.contains("todas")) {
+                        isIn("property_id", propertyIds)
+                    }
+                    if (!platform.isNullOrEmpty() && platform != "all") {
+                        eq("platform", platform)
+                    }
                 }
             }.decodeList<Reservation>()
             

@@ -118,7 +118,14 @@ class DashboardViewModel : ViewModel() {
                         )
                     },
                     launch { todaysEvents = reservationRepository.getTodaysEvents() },
-                    launch { alerts = reservationRepository.getOperationalAlerts() }
+                    launch { 
+                        alerts = reservationRepository.getOperationalAlerts(
+                            startDate = startDate,
+                            endDate = endDate,
+                            propertyIds = propertyIds,
+                            platform = platform
+                        ) 
+                    }
                 )
                 jobs.forEach { it.join() }
                 
